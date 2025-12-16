@@ -1,0 +1,434 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Reality Check - Feasibility Analysis</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+
+        header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+
+        header p {
+            font-size: 1.1em;
+            opacity: 0.9;
+        }
+
+        .content {
+            padding: 40px;
+        }
+
+        .input-section {
+            margin-bottom: 30px;
+        }
+
+        .input-section h2 {
+            color: #667eea;
+            margin-bottom: 15px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+            color: #555;
+        }
+
+        input[type="text"],
+        textarea {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 5px;
+            font-size: 14px;
+            font-family: inherit;
+            transition: border-color 0.3s;
+        }
+
+        input[type="text"]:focus,
+        textarea:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        textarea {
+            min-height: 200px;
+            resize: vertical;
+        }
+
+        .file-upload {
+            border: 2px dashed #e0e0e0;
+            border-radius: 5px;
+            padding: 30px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .file-upload:hover {
+            border-color: #667eea;
+            background: #f8f9ff;
+        }
+
+        .file-upload.dragover {
+            border-color: #667eea;
+            background: #f0f2ff;
+        }
+
+        input[type="file"] {
+            display: none;
+        }
+
+        button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 15px 40px;
+            font-size: 16px;
+            font-weight: 600;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .results {
+            margin-top: 40px;
+            padding: 30px;
+            background: #f8f9ff;
+            border-radius: 5px;
+            display: none;
+        }
+
+        .results.show {
+            display: block;
+        }
+
+        .results h2 {
+            color: #667eea;
+            margin-bottom: 20px;
+        }
+
+        .analysis-section {
+            background: white;
+            padding: 20px;
+            margin-bottom: 20px;
+            border-radius: 5px;
+            border-left: 4px solid #667eea;
+        }
+
+        .analysis-section h3 {
+            color: #764ba2;
+            margin-bottom: 10px;
+        }
+
+        .validation-details {
+            background: #fff3cd;
+            border-left: 4px solid #ffc107;
+            padding: 15px;
+            margin-bottom: 20px;
+            border-radius: 5px;
+        }
+
+        .validation-details h4 {
+            color: #856404;
+            margin-bottom: 10px;
+        }
+
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+            padding: 15px;
+            border-radius: 5px;
+            border-left: 4px solid #dc3545;
+            margin-bottom: 20px;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            display: none;
+        }
+
+        .loading.show {
+            display: block;
+        }
+
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        pre {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 5px;
+            overflow-x: auto;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+
+        .tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #e0e0e0;
+        }
+
+        .tab {
+            padding: 10px 20px;
+            cursor: pointer;
+            border: none;
+            background: none;
+            color: #666;
+            font-weight: 500;
+            transition: all 0.3s;
+        }
+
+        .tab.active {
+            color: #667eea;
+            border-bottom: 2px solid #667eea;
+            margin-bottom: -2px;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🔬 AI Reality Check</h1>
+            <p>Ground your technical ideas in engineering reality</p>
+        </header>
+
+        <div class="content">
+            <div class="tabs">
+                <button class="tab active" data-tab="text">Text Input</button>
+                <button class="tab" data-tab="file">Upload File</button>
+            </div>
+
+            <form id="analysisForm">
+                <div class="form-group">
+                    <label for="title">Project Title (Optional)</label>
+                    <input type="text" id="title" name="title" placeholder="e.g., Biomass Pyrolysis System">
+                </div>
+
+                <div class="tab-content active" id="text-content">
+                    <div class="form-group">
+                        <label for="text">Technical Description</label>
+                        <textarea id="text" name="text" placeholder="Describe your technical project, system design, or engineering concept...&#10;&#10;Include details like:&#10;- Process temperatures and conditions&#10;- Equipment and materials&#10;- Expected products or outputs&#10;- Scale and capacity&#10;- Key performance goals"></textarea>
+                    </div>
+                </div>
+
+                <div class="tab-content" id="file-content">
+                    <div class="form-group">
+                        <label>Upload Document (PDF or TXT)</label>
+                        <div class="file-upload" id="fileUpload">
+                            <p>📁 Drop file here or click to browse</p>
+                            <p style="font-size: 0.9em; color: #999; margin-top: 10px;">Max 16MB</p>
+                            <input type="file" id="file" name="file" accept=".pdf,.txt">
+                        </div>
+                        <div id="fileName" style="margin-top: 10px; color: #667eea;"></div>
+                    </div>
+                </div>
+
+                <button type="submit" id="submitBtn">🚀 Analyze Feasibility</button>
+            </form>
+
+            <div class="loading" id="loading">
+                <div class="spinner"></div>
+                <p>Analyzing your project... This may take 30-60 seconds.</p>
+            </div>
+
+            <div class="error" id="error" style="display: none;"></div>
+
+            <div class="results" id="results">
+                <h2>📊 Analysis Results</h2>
+                <div id="resultsContent"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Tab switching
+        document.querySelectorAll('.tab').forEach(tab => {
+            tab.addEventListener('click', () => {
+                const tabName = tab.dataset.tab;
+                
+                // Update active tab
+                document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+                tab.classList.add('active');
+                
+                // Update active content
+                document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+                document.getElementById(`${tabName}-content`).classList.add('active');
+            });
+        });
+
+        // File upload handling
+        const fileUpload = document.getElementById('fileUpload');
+        const fileInput = document.getElementById('file');
+        const fileName = document.getElementById('fileName');
+
+        fileUpload.addEventListener('click', () => fileInput.click());
+
+        fileUpload.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            fileUpload.classList.add('dragover');
+        });
+
+        fileUpload.addEventListener('dragleave', () => {
+            fileUpload.classList.remove('dragover');
+        });
+
+        fileUpload.addEventListener('drop', (e) => {
+            e.preventDefault();
+            fileUpload.classList.remove('dragover');
+            fileInput.files = e.dataTransfer.files;
+            updateFileName();
+        });
+
+        fileInput.addEventListener('change', updateFileName);
+
+        function updateFileName() {
+            if (fileInput.files.length > 0) {
+                fileName.textContent = `Selected: ${fileInput.files[0].name}`;
+            } else {
+                fileName.textContent = '';
+            }
+        }
+
+        // Form submission
+        document.getElementById('analysisForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const formData = new FormData(e.target);
+            const submitBtn = document.getElementById('submitBtn');
+            const loading = document.getElementById('loading');
+            const error = document.getElementById('error');
+            const results = document.getElementById('results');
+
+            // Hide previous results/errors
+            error.style.display = 'none';
+            results.classList.remove('show');
+
+            // Show loading
+            loading.classList.add('show');
+            submitBtn.disabled = true;
+
+            try {
+                const response = await fetch('/analyze', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.error || 'Analysis failed');
+                }
+
+                displayResults(data.result);
+            } catch (err) {
+                error.textContent = `Error: ${err.message}`;
+                error.style.display = 'block';
+            } finally {
+                loading.classList.remove('show');
+                submitBtn.disabled = false;
+            }
+        });
+
+        function displayResults(result) {
+            const resultsContent = document.getElementById('resultsContent');
+            const results = document.getElementById('results');
+
+            let html = '';
+
+            // Domain validation
+            if (result.domain_validation && Object.keys(result.domain_validation).length > 0) {
+                html += '<div class="validation-details">';
+                html += '<h4>🔍 Domain Expert Validation</h4>';
+                html += '<pre>' + JSON.stringify(result.domain_validation, null, 2) + '</pre>';
+                html += '</div>';
+            }
+
+            // Main analysis
+            html += '<div class="analysis-section">';
+            html += '<h3>📋 Feasibility Analysis</h3>';
+            html += '<pre>' + result.analysis + '</pre>';
+            html += '</div>';
+
+            // Metadata
+            html += '<div style="font-size: 0.9em; color: #999; margin-top: 20px;">';
+            html += `Domain: ${result.metadata.domain} | Provider: ${result.metadata.provider}`;
+            html += '</div>';
+
+            resultsContent.innerHTML = html;
+            results.classList.add('show');
+            results.scrollIntoView({ behavior: 'smooth' });
+        }
+    </script>
+</body>
+</html>

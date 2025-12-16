@@ -1,0 +1,84 @@
+# pre-commit configuration for code quality
+# Install: uv pip install pre-commit
+# Setup: pre-commit install
+# Run manually: pre-commit run --all-files
+
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.5.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-yaml
+      - id: check-added-large-files
+        args: ["--maxkb=1000"]
+      - id: check-merge-conflict
+      - id: check-json
+      - id: check-toml
+      - id: mixed-line-ending
+
+  - repo: https://github.com/psf/black
+    rev: 23.12.1
+    hooks:
+      - id: black
+        args: [--line-length=100]
+
+  - repo: https://github.com/pycqa/isort
+    rev: 5.13.2
+    hooks:
+      - id: isort
+        args: [--profile=black, --line-length=100]
+
+  - repo: https://github.com/PyCQA/flake8
+    rev: 7.0.0
+    hooks:
+      - id: flake8
+        args: [--max-line-length=100, --extend-ignore=E203]
+
+  - repo: local
+    hooks:
+      - id: branch-protection
+        name: branch-protection
+        entry: python
+        args:
+          - -c
+          - |
+            import sys
+            import subprocess
+            protected_branches = ['main']
+            current_branch = subprocess.check_output(['git', 'symbolic-ref', 'HEAD'], text=True).strip()
+            current_branch = current_branch.replace('refs/heads/', '')
+            if current_branch in protected_branches:
+                print("")
+                print(f"ERROR: Direct pushes to '{current_branch}' are not allowed!")
+                print("")
+                print("Please use feature branches and Pull Requests.")
+                print("")
+                sys.exit(1)
+        language: system
+        pass_filenames: false
+        stages: [pre-push]
+      - id: inclusive-language
+        name: inclusive-language
+        entry: python scripts/check_inclusive_language.py
+        language: system
+        pass_filenames: true
+        types: [text]
+        exclude: '^(\.git/|node_modules/|venv/|\.venv/|.*\.lock$|scripts/check_inclusive_language\.py)'
+        stages: [pre-commit]
+      - id: pytest-commit
+        name: pytest (fast tests - commit)
+        entry: bash -c 'python -m pytest -m "not slow" --maxfail=1 --tb=line -q'
+        language: system
+        pass_filenames: false
+        types: [python]
+        files: ^(src/|tests/)
+        stages: [pre-commit]
+      - id: pytest-push
+        name: pytest (full suite - push)
+        entry: bash -c 'python -m pytest -v --tb=short --maxfail=5'
+        language: system
+        pass_filenames: false
+        types: [python]
+        files: ^(src/|tests/)
+        stages: [pre-push]

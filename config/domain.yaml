@@ -1,0 +1,120 @@
+# Domain configuration for thermal processing systems
+# Used by ASMF DomainConfig and DomainExpert for technical validation
+
+domain:
+  name: "Thermal Processing Systems"
+  description: "Pyrolysis, gasification, combustion, and thermal conversion processes for waste-to-energy, biomass conversion, and carbon capture applications"
+
+# Temperature ranges by process type (Celsius)
+temperature_ranges:
+  pyrolysis: [300, 900]
+  fast_pyrolysis: [450, 600]
+  slow_pyrolysis: [300, 500]
+  gasification: [700, 1500]
+  combustion: [800, 2000]
+  torrefaction: [200, 320]
+  carbonization: [400, 700]
+
+# Recognized equipment types
+equipment_types:
+  - "Fixed bed reactor"
+  - "Fluidized bed reactor"
+  - "Bubbling fluidized bed"
+  - "Circulating fluidized bed"
+  - "Rotary kiln"
+  - "Auger reactor"
+  - "Screw reactor"
+  - "Ablative reactor"
+  - "Microwave reactor"
+  - "Plasma reactor"
+  - "Downdraft gasifier"
+  - "Updraft gasifier"
+  - "Entrained flow reactor"
+  - "Vacuum pyrolysis unit"
+
+# Feedstock materials
+feedstocks:
+  - "Biomass"
+  - "Wood chips"
+  - "Agricultural residues"
+  - "Municipal solid waste"
+  - "Plastic waste"
+  - "Tire waste"
+  - "Sewage sludge"
+  - "Lignocellulosic biomass"
+  - "Algae"
+  - "Food waste"
+
+# Expected products by process type
+products:
+  pyrolysis:
+    bio_oil:
+      description: "Liquid product (oxygenated hydrocarbons)"
+      typical_yield: "50-70%"
+    biochar:
+      description: "Solid carbon-rich residue"
+      typical_yield: "15-25%"
+    syngas:
+      description: "Gas mixture (CO, H2, CH4, CO2)"
+      typical_yield: "10-20%"
+  
+  gasification:
+    syngas:
+      description: "Producer gas (CO, H2, CH4, CO2, N2)"
+      typical_yield: "70-85%"
+    tar:
+      description: "Condensable organic compounds"
+      typical_yield: "5-15%"
+    ash:
+      description: "Inorganic residue"
+      typical_yield: "5-20%"
+  
+  combustion:
+    heat:
+      description: "Thermal energy output"
+      typical_yield: "80-95%"
+    flue_gas:
+      description: "CO2, H2O, N2, trace pollutants"
+      typical_yield: "100% (by mass)"
+    ash:
+      description: "Inorganic residue"
+      typical_yield: "1-20%"
+
+# Process types and their identifiers
+process_types:
+  - "Pyrolysis"
+  - "Fast pyrolysis"
+  - "Slow pyrolysis"
+  - "Gasification"
+  - "Combustion"
+  - "Torrefaction"
+  - "Carbonization"
+  - "Hydrothermal carbonization"
+  - "Steam gasification"
+  - "Air gasification"
+  - "Oxygen gasification"
+
+# Operating conditions and constraints
+operating_conditions:
+  pressure:
+    min: 0.1  # bar (vacuum to near-vacuum)
+    max: 50.0 # bar (high pressure gasification)
+  
+  residence_time:
+    min: 0.1  # seconds (fast pyrolysis)
+    max: 3600 # seconds (1 hour - slow pyrolysis/carbonization)
+  
+  heating_rate:
+    min: 1    # °C/min (slow pyrolysis)
+    max: 10000 # °C/s (flash pyrolysis)
+
+# Validation rules
+validation:
+  mass_balance_tolerance: 0.05  # 5% acceptable deviation
+  temperature_buffer: 50        # Celsius buffer for range checks
+  
+  # Common issues to flag
+  warnings:
+    high_temperature_without_pressure: 1200  # °C - flag if high temp but low pressure
+    low_residence_time: 0.5                  # seconds - may be insufficient
+    high_residence_time: 7200                # seconds - may be impractical
