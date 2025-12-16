@@ -11,7 +11,7 @@ from pathlib import Path
 from typing import Dict, Optional
 
 from asmf.domain import DomainExpert, get_domain_config
-from asmf.providers import get_provider
+from asmf.providers import AIProviderFactory
 
 logger = logging.getLogger(__name__)
 
@@ -96,8 +96,8 @@ Be concise, professional, and grounded in current engineering knowledge.
         # Build full prompt with context
         full_prompt = self._build_prompt(text, validation, context)
 
-        # Get AI analysis
-        provider = get_provider()
+        # Get AI analysis using provider factory (Gemini with Ollama fallback)
+        provider = AIProviderFactory.create_provider()
         analysis = provider.analyze_text(full_prompt, self.system_prompt)
 
         result = {
