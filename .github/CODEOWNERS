@@ -1,0 +1,16 @@
+# Code Owners for ai-reality-check
+# These users will be automatically requested for review when PRs are opened
+
+# Default owner for everything in the repo
+* @vcaboara
+
+# Core analysis components
+/src/analyzers/ @vcaboara
+/src/prompts/ @vcaboara
+
+# Configuration and domain knowledge
+/config/ @vcaboara
+
+# Infrastructure and tooling
+/.github/ @vcaboara
+/scripts/ @vcaboara
