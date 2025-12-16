@@ -6,11 +6,6 @@ WORKDIR /app
 # Install uv for fast dependency installation
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
 
-# Install system dependencies (minimal set)
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    curl \
-    && rm -rf /var/lib/apt/lists/*
-
 # Copy dependency files first for better caching
 COPY pyproject.toml .
 
@@ -27,9 +22,9 @@ RUN mkdir -p data/uploads data/results
 # Expose Flask port
 EXPOSE 5000
 
-# Health check
+# Health check using Python (no curl needed)
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-    CMD curl -f http://localhost:5000/ || exit 1
+    CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:5000/').read()" || exit 1
 
 # Run server
 CMD ["python", "-m", "flask", "--app", "src.ui.server:app", "run", "--host", "0.0.0.0", "--port", "5000"]
