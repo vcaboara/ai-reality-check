@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -25,7 +26,7 @@
             margin: 0 auto;
             background: white;
             border-radius: 10px;
-            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
             overflow: hidden;
         }
 
@@ -211,8 +212,13 @@
         }
 
         @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
         }
 
         pre {
@@ -256,6 +262,7 @@
         }
     </style>
 </head>
+
 <body>
     <div class="container">
         <header>
@@ -278,7 +285,8 @@
                 <div class="tab-content active" id="text-content">
                     <div class="form-group">
                         <label for="text">Technical Description</label>
-                        <textarea id="text" name="text" placeholder="Describe your technical project, system design, or engineering concept...&#10;&#10;Include details like:&#10;- Process temperatures and conditions&#10;- Equipment and materials&#10;- Expected products or outputs&#10;- Scale and capacity&#10;- Key performance goals"></textarea>
+                        <textarea id="text" name="text"
+                            placeholder="Describe your technical project, system design, or engineering concept...&#10;&#10;Include details like:&#10;- Process temperatures and conditions&#10;- Equipment and materials&#10;- Expected products or outputs&#10;- Scale and capacity&#10;- Key performance goals"></textarea>
                     </div>
                 </div>
 
@@ -316,11 +324,11 @@
         document.querySelectorAll('.tab').forEach(tab => {
             tab.addEventListener('click', () => {
                 const tabName = tab.dataset.tab;
-                
+
                 // Update active tab
                 document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
                 tab.classList.add('active');
-                
+
                 // Update active content
                 document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
                 document.getElementById(`${tabName}-content`).classList.add('active');
@@ -431,4 +439,5 @@
         }
     </script>
 </body>
+
 </html>

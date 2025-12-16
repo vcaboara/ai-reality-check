@@ -36,8 +36,8 @@ class FeasibilityAnalyzer:
         else:
             self.domain_config = get_domain_config()
 
-        # Initialize domain expert
-        self.expert = DomainExpert(self.domain_config)
+        # Initialize domain expert (uses global config)
+        self.expert = DomainExpert()
 
         # Load system prompt
         self.system_prompt = self._load_system_prompt()
@@ -98,7 +98,12 @@ Be concise, professional, and grounded in current engineering knowledge.
 
         # Get AI analysis using provider factory (Gemini with Ollama fallback)
         provider = AIProviderFactory.create_provider()
-        analysis = provider.analyze_text(full_prompt, self.system_prompt)
+        analysis_context = {"system_prompt": self.system_prompt}
+        if context:
+            analysis_context.update(context)
+        analysis = provider.analyze_text(full_prompt, analysis_context)
+
+        from datetime import datetime
 
         result = {
             "analysis": analysis,
@@ -106,6 +111,8 @@ Be concise, professional, and grounded in current engineering knowledge.
             "metadata": {
                 "domain": self.domain_config.domain_name,
                 "provider": provider.__class__.__name__,
+                "model": getattr(provider, 'model', 'unknown'),
+                "timestamp": datetime.now().isoformat(),
             },
         }
 
@@ -179,17 +186,21 @@ Be concise, professional, and grounded in current engineering knowledge.
             if "temperature" in validation:
                 temp = validation["temperature"]
                 if temp.get("all_valid"):
-                    prompt_parts.append("✓ Temperature ranges are technically valid")
+                    prompt_parts.append(
+                        "✓ Temperature ranges are technically valid")
                 else:
                     issues = temp.get("issues", [])
-                    prompt_parts.append(f"⚠ Temperature concerns: {'; '.join(issues)}")
+                    prompt_parts.append(
+                        f"⚠ Temperature concerns: {'; '.join(issues)}")
 
             if "equipment" in validation:
                 equip = validation["equipment"]
                 if equip.get("recognized"):
-                    prompt_parts.append(f"✓ Equipment recognized: {', '.join(equip['recognized'])}")
+                    prompt_parts.append(
+                        f"✓ Equipment recognized: {', '.join(equip['recognized'])}")
                 if equip.get("unrecognized"):
-                    prompt_parts.append(f"? Unknown equipment: {', '.join(equip['unrecognized'])}")
+                    prompt_parts.append(
+                        f"? Unknown equipment: {', '.join(equip['unrecognized'])}")
 
             if "process_type" in validation:
                 process = validation["process_type"]
@@ -198,7 +209,8 @@ Be concise, professional, and grounded in current engineering knowledge.
             if "mass_balance" in validation:
                 mass = validation["mass_balance"]
                 if not mass.get("valid"):
-                    prompt_parts.append(f"⚠ Mass balance issue: {mass.get('message')}")
+                    prompt_parts.append(
+                        f"⚠ Mass balance issue: {mass.get('message')}")
                 else:
                     prompt_parts.append("✓ Mass balance appears valid")
 

@@ -60,3 +60,13 @@ Thumbs.db
 # Flask
 instance/
 .webassets-cache
+
+# Private samples
+*.pdf
+
+# Test/utility scripts (not core project)
+test_analysis.py
+test_ollama_direct.py
+compare_models.py
+download_models.py
+monitor_test.ps1

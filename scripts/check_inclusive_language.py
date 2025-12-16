@@ -52,7 +52,8 @@ def should_skip_file(path: Path) -> bool:
         return True
 
     # Skip dependency directories
-    skip_dirs = [".git", "node_modules", "venv", "__pycache__", ".venv", "dist", "build"]
+    skip_dirs = [".git", "node_modules", "venv",
+                 "__pycache__", ".venv", "dist", "build"]
     return any(skip_dir in path.parts for skip_dir in skip_dirs)
 
 
@@ -124,7 +125,8 @@ def main():
         for file_path, issues in sorted(all_issues.items()):
             print(f"  {file_path}:")
             for line_num, term, suggestion in issues:
-                print(f"    Line {line_num}: '{term}' → consider '{suggestion}'")
+                print(
+                    f"    Line {line_num}: '{term}' → consider '{suggestion}'")
 
         print("\nℹ️  These are suggestions for more inclusive terminology.")
         print("If a usage is legitimate, you can:")

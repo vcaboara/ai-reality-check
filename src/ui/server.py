@@ -21,8 +21,10 @@ logger = logging.getLogger(__name__)
 # Initialize Flask app
 app = Flask(__name__)
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max file size
-app.config['UPLOAD_FOLDER'] = Path(__file__).parent.parent.parent / 'data' / 'uploads'
-app.config['RESULTS_FOLDER'] = Path(__file__).parent.parent.parent / 'data' / 'results'
+app.config['UPLOAD_FOLDER'] = Path(
+    __file__).parent.parent.parent / 'data' / 'uploads'
+app.config['RESULTS_FOLDER'] = Path(
+    __file__).parent.parent.parent / 'data' / 'results'
 
 # Create directories
 app.config['UPLOAD_FOLDER'].mkdir(parents=True, exist_ok=True)
@@ -53,9 +55,9 @@ def analyze():
         # Check if text input provided
         text_input = request.form.get('text')
         title = request.form.get('title', 'Untitled Project')
-        
+
         result = None
-        
+
         if text_input:
             # Analyze text directly
             logger.info(f"Analyzing text input: {title}")
@@ -63,26 +65,26 @@ def analyze():
                 text_input,
                 context={'title': title}
             )
-        
+
         elif 'file' in request.files:
             # Analyze uploaded file
             file = request.files['file']
-            
+
             if file.filename == '':
                 return jsonify({'error': 'No file selected'}), 400
-            
+
             if not allowed_file(file.filename):
                 return jsonify({'error': 'Invalid file type. Allowed: PDF, TXT'}), 400
-            
+
             # Save file
             filename = secure_filename(file.filename)
             timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
             unique_filename = f"{timestamp}_{filename}"
             filepath = app.config['UPLOAD_FOLDER'] / unique_filename
-            
+
             file.save(filepath)
             logger.info(f"Saved upload: {filepath}")
-            
+
             # Analyze based on file type
             if filename.endswith('.pdf'):
                 result = analyzer.analyze_pdf(
@@ -97,29 +99,29 @@ def analyze():
                     text,
                     context={'title': title}
                 )
-        
+
         else:
             return jsonify({'error': 'No text or file provided'}), 400
-        
+
         # Save result
         result_filename = f"analysis_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
         result_path = app.config['RESULTS_FOLDER'] / result_filename
-        
+
         with open(result_path, 'w', encoding='utf-8') as f:
             json.dump({
                 'title': title,
                 'timestamp': datetime.now().isoformat(),
                 'result': result
             }, f, indent=2)
-        
+
         logger.info(f"Saved result: {result_path}")
-        
+
         return jsonify({
             'success': True,
             'result': result,
             'result_file': result_filename
         })
-    
+
     except Exception as e:
         logger.error(f"Analysis error: {e}", exc_info=True)
         return jsonify({'error': str(e)}), 500
@@ -138,12 +140,12 @@ def list_results():
                     'title': data.get('title', 'Untitled'),
                     'timestamp': data.get('timestamp'),
                 })
-        
+
         # Sort by timestamp (newest first)
         results.sort(key=lambda x: x['timestamp'], reverse=True)
-        
+
         return jsonify({'results': results})
-    
+
     except Exception as e:
         logger.error(f"Error listing results: {e}", exc_info=True)
         return jsonify({'error': str(e)}), 500
@@ -154,15 +156,15 @@ def get_result(filename):
     """Retrieve a specific analysis result."""
     try:
         result_path = app.config['RESULTS_FOLDER'] / secure_filename(filename)
-        
+
         if not result_path.exists():
             return jsonify({'error': 'Result not found'}), 404
-        
+
         with open(result_path, 'r', encoding='utf-8') as f:
             data = json.load(f)
-        
+
         return jsonify(data)
-    
+
     except Exception as e:
         logger.error(f"Error retrieving result: {e}", exc_info=True)
         return jsonify({'error': str(e)}), 500
@@ -181,8 +183,8 @@ def health():
 if __name__ == '__main__':
     port = int(os.getenv('PORT', 5000))
     debug = os.getenv('FLASK_ENV') == 'development'
-    
+
     logger.info(f"Starting AI Reality Check server on port {port}")
     logger.info(f"Domain: {analyzer.domain_config.domain_name}")
-    
+
     app.run(host='0.0.0.0', port=port, debug=debug)
