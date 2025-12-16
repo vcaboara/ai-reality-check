@@ -25,7 +25,7 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install ai-search-match-framework==0.2.0
+          pip install ai-search-match-framework==0.3.2
           pip install python-dotenv pyyaml
           pip install black isort flake8
           

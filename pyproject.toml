@@ -26,7 +26,7 @@ dependencies = [
     "pypdf>=4.0.0",
     "requests>=2.31.0",
     "python-dotenv>=1.0.0",
-    "ai-search-match-framework @ git+https://github.com/vcaboara/ai-search-match-framework.git@v0.2.0",
+    "ai-search-match-framework>=0.3.2",
 ]
 
 [project.optional-dependencies]
