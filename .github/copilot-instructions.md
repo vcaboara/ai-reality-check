@@ -134,6 +134,10 @@ class MyDomainAnalyzer(BaseAnalyzer):
 
 ## AI Commit Attribution Standards
 
+### ⚠️ MANDATORY: [AI] Prefix for ALL AI Commits
+
+**CRITICAL REQUIREMENT:** Every commit where AI generates >50% of code/content MUST use the `[AI]` prefix and attribution footer. No exceptions.
+
 ### When to Use [AI] Prefix
 
 When GitHub Copilot or other AI tools generate commits, use the `[AI]` prefix to track AI contributions:

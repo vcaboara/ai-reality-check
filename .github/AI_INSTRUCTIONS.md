@@ -2,6 +2,31 @@
 
 Copy to your AI assistant configuration directory (`.cursor/rules/`, `.clinerules/`, etc.)
 
+## ⚠️ CRITICAL: AI Commit Attribution
+
+**MANDATORY for EVERY AI-generated commit and PR:**
+
+1. **[AI] prefix** in commit title: `[AI] feat: add feature`
+2. **Attribution footer** in commit body:
+   ```
+   ---
+   AI-Generated-By: GitHub Copilot (Claude Sonnet 4.5)
+   ```
+
+**No exceptions.** Use file-based commits:
+```powershell
+@'
+[AI] feat: add feature
+
+Detailed description
+
+---
+AI-Generated-By: GitHub Copilot (Claude Sonnet 4.5)
+'@ | Out-File -FilePath commit-msg.txt -Encoding utf8
+git commit -F commit-msg.txt
+rm commit-msg.txt
+```
+
 ## Action-Focused Behavior
 
 **ALWAYS:**
