@@ -1,17 +1,17 @@
-﻿[AI] feat: enhance UI with model display, context input, and multi-file support
+﻿[AI] fix: resolve Docker build issues for UI improvements
 
-Added features:
-- Display current AI model/provider in header
-- Additional context field for constraints and questions
-- Multi-file upload support (analyze multiple PDFs/TXTs together)
-- Comprehensive UI_GUIDE.md with usage examples
-- Pass user context through to analyzer
+- Added tool.hatch.build.targets.wheel.packages = ["src"] to pyproject.toml
+- Updated .dockerignore to allow README.md (!README.md)
+- Fixed import: src.analyzers.feasibility_analyzer
+- Pass Path object (not string) to DomainConfig
+- Included README.md in Dockerfile COPY statement
 
-Benefits:
-- Users know which model is being used
-- Better analysis with additional context
-- Can upload multiple related documents
-- Clear instructions for optimal results
+All features now working:
+- Model display in header 
+- Context input field 
+- Multi-file upload 
+
+Tested and verified functionality.
 
 ---
 AI-Generated-By: GitHub Copilot (Claude Sonnet 4.5)
