@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -180,8 +181,13 @@
         }
 
         @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
         }
 
         .session-info {
@@ -207,6 +213,7 @@
         }
     </style>
 </head>
+
 <body>
     <div class="container">
         <header>
@@ -227,7 +234,8 @@
             <div class="messages" id="messages">
                 <div class="message system">
                     <div class="message-content">
-                        👋 Welcome! Describe your project or idea, and I'll provide an interactive feasibility analysis. You can ask follow-up questions and request clarifications.
+                        👋 Welcome! Describe your project or idea, and I'll provide an interactive feasibility analysis.
+                        You can ask follow-up questions and request clarifications.
                     </div>
                 </div>
             </div>
@@ -239,13 +247,8 @@
 
             <div class="input-area">
                 <form class="input-form" id="chatForm">
-                    <input 
-                        type="text" 
-                        id="messageInput" 
-                        placeholder="Describe your project or ask a question..."
-                        required
-                        autocomplete="off"
-                    >
+                    <input type="text" id="messageInput" placeholder="Describe your project or ask a question..."
+                        required autocomplete="off">
                     <button type="submit" id="sendBtn">Send</button>
                 </form>
             </div>
@@ -277,20 +280,20 @@
             const messagesDiv = document.getElementById('messages');
             const messageDiv = document.createElement('div');
             messageDiv.className = `message ${role}`;
-            
+
             const contentDiv = document.createElement('div');
             contentDiv.className = 'message-content';
-            
+
             // Format content with line breaks and sections
             if (role === 'assistant') {
                 contentDiv.innerHTML = formatAnalysis(content);
             } else {
                 contentDiv.textContent = content;
             }
-            
+
             messageDiv.appendChild(contentDiv);
             messagesDiv.appendChild(messageDiv);
-            
+
             // Scroll to bottom
             messagesDiv.scrollTop = messagesDiv.scrollHeight;
         }
@@ -311,23 +314,23 @@
 
         document.getElementById('chatForm').addEventListener('submit', async (e) => {
             e.preventDefault();
-            
+
             const input = document.getElementById('messageInput');
             const message = input.value.trim();
-            
+
             if (!message) return;
-            
+
             // Initialize session if needed
             if (!sessionId) {
                 sessionId = generateSessionId();
                 document.getElementById('sessionId').textContent = sessionId;
             }
-            
+
             // Add user message
             addMessage('user', message);
             input.value = '';
             setLoading(true);
-            
+
             try {
                 const response = await fetch('/chat', {
                     method: 'POST',
@@ -340,20 +343,20 @@
                         message_count: messageCount
                     })
                 });
-                
+
                 if (!response.ok) {
                     throw new Error(`HTTP ${response.status}: ${response.statusText}`);
                 }
-                
+
                 const data = await response.json();
-                
+
                 if (data.error) {
                     addMessage('system', '⚠️ Error: ' + data.error);
                 } else {
                     addMessage('assistant', data.response);
                     messageCount++;
                 }
-                
+
             } catch (error) {
                 console.error('Error:', error);
                 addMessage('system', '⚠️ Failed to get response: ' + error.message);
@@ -367,4 +370,5 @@
         document.getElementById('messageInput').focus();
     </script>
 </body>
+
 </html>

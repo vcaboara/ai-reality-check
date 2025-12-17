@@ -198,36 +198,36 @@ def chat():
         data = request.get_json()
         message = data.get('message', '').strip()
         session_id = data.get('session_id')
-        
+
         if not message:
             return jsonify({'error': 'No message provided'}), 400
-        
+
         if not session_id:
             return jsonify({'error': 'No session ID provided'}), 400
-        
+
         # Initialize conversation history for this session
         if session_id not in conversations:
             conversations[session_id] = []
-        
+
         conversation = conversations[session_id]
-        
+
         # Add user message to history
         conversation.append({
             'role': 'user',
             'content': message,
             'timestamp': datetime.now().isoformat()
         })
-        
+
         # Build context from conversation history
         context_text = "\n\n".join([
             f"{'User' if msg['role'] == 'user' else 'Assistant'}: {msg['content']}"
             for msg in conversation[-5:]  # Last 5 exchanges for context
         ])
-        
+
         # Get AI response with conversation context
         from asmf.providers import AIProviderFactory
         provider = AIProviderFactory.create_provider()
-        
+
         # Build prompt with conversation context
         if len(conversation) == 1:
             # First message - full feasibility analysis
@@ -249,32 +249,33 @@ Be conversational and ready to answer follow-up questions."""
 New question: {message}
 
 Provide a helpful, conversational response that builds on the previous discussion. Reference earlier points when relevant."""
-        
+
         response_text = provider.analyze_text(
             prompt,
             system_prompt="You are a helpful technical expert providing interactive feasibility analysis. Be conversational, clear, and willing to clarify or expand on any point."
         )
-        
+
         # Add assistant response to history
         conversation.append({
             'role': 'assistant',
             'content': response_text,
             'timestamp': datetime.now().isoformat()
         })
-        
+
         # Limit conversation history to prevent memory issues
         if len(conversation) > 20:
             conversation = conversation[-20:]
             conversations[session_id] = conversation
-        
-        logger.info(f"Chat response for session {session_id}: {len(response_text)} chars")
-        
+
+        logger.info(
+            f"Chat response for session {session_id}: {len(response_text)} chars")
+
         return jsonify({
             'success': True,
             'response': response_text,
             'message_count': len([m for m in conversation if m['role'] == 'user'])
         })
-        
+
     except Exception as e:
         logger.error(f"Chat error: {e}", exc_info=True)
         return jsonify({'error': str(e)}), 500
