@@ -311,6 +311,7 @@ def chat():
         data = request.get_json()
         message = data.get('message', '').strip()
         session_id = data.get('session_id')
+        analysis_context = data.get('analysis_context')  # Get analysis context from frontend
 
         if not message:
             return jsonify({'error': 'No message provided'}), 400
@@ -341,8 +342,23 @@ def chat():
         from asmf.providers import AIProviderFactory
         provider = AIProviderFactory.create_provider()
 
-        # Build prompt with conversation context
-        if len(conversation) == 1:
+        # Build prompt with conversation context and analysis if available
+        system_context = "You are a helpful technical expert providing interactive feasibility analysis. Be conversational, clear, and willing to clarify or expand on any point."
+        
+        if analysis_context and len(conversation) == 1:
+            # First message with existing analysis - make AI aware of it
+            prompt = f"""The user has a recent feasibility analysis. Here's the context:
+
+PREVIOUS ANALYSIS:
+{analysis_context.get('analysis', '')}
+
+DOMAIN VALIDATION:
+{json.dumps(analysis_context.get('domain_validation', {}), indent=2)}
+
+The user is now asking: {message}
+
+Please respond to their question with awareness of the previous analysis."""
+        elif len(conversation) == 1:
             # First message - full feasibility analysis
             prompt = f"""Perform a feasibility analysis on the following project/idea:
 
@@ -365,7 +381,7 @@ Provide a helpful, conversational response that builds on the previous discussio
 
         response_text = provider.analyze_text(
             prompt,
-            system_prompt="You are a helpful technical expert providing interactive feasibility analysis. Be conversational, clear, and willing to clarify or expand on any point."
+            system_prompt=system_context
         )
 
         # Add assistant response to history
