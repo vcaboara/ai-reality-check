@@ -9,6 +9,8 @@ from typing import Dict, List
 
 from flask import Flask, render_template, request, jsonify, send_from_directory, session
 from werkzeug.utils import secure_filename
+from asmf.llm import ModelSelector, TaskType
+from werkzeug.utils import secure_filename
 
 from src.analyzers.feasibility_analyzer import FeasibilityAnalyzer
 
@@ -47,6 +49,41 @@ if USER_PREFS_CONFIG.exists():
 else:
     logger.info("No user preferences file found, using defaults")
 
+# Detect if running in container (skip GPU auto-detection if so)
+in_container = os.path.exists('/.dockerenv') or os.path.exists('/run/.containerenv')
+
+# Load GPU config from user_preferences.yaml (required for containers)
+try:
+    hardware_config = user_preferences.get('hardware', {}).get('gpu', {})
+    config_vram = hardware_config.get('vram_gb')
+    
+    if config_vram:
+        # Use manual config from user_preferences.yaml
+        selector = ModelSelector(vram_gb=config_vram)
+        logger.info(f"Using GPU config from user_preferences.yaml: {config_vram}GB VRAM")
+        
+        recommended_model = selector.select_model(TaskType.DOCUMENT_ANALYSIS, check_availability=False)
+        logger.info(f"Recommended model for {config_vram}GB VRAM: {recommended_model}")
+        
+        # Don't show warnings - user knows their hardware best
+        # The config file documents available models for their VRAM tier
+    elif in_container:
+        # In container but no GPU config - skip detection
+        logger.warning("Running in container without GPU config in user_preferences.yaml - skipping GPU detection")
+        selector = None
+        recommended_model = None
+    else:
+        # Not in container - auto-detect from system
+        selector = ModelSelector()
+        logger.info(f"Auto-detected: {selector.vram_gb}GB VRAM ({selector.gpu_vendor})")
+        
+        recommended_model = selector.select_model(TaskType.DOCUMENT_ANALYSIS, check_availability=False)
+        logger.info(f"Recommended model for {selector.vram_gb}GB VRAM: {recommended_model}")
+except Exception as e:
+    logger.warning(f"Could not load GPU config: {e}")
+    selector = None
+    recommended_model = None
+
 # In-memory conversation storage (for demo - use Redis/DB for production)
 conversations: Dict[str, List[Dict]] = {}
 
@@ -76,6 +113,15 @@ def index():
     provider_type = 'Ollama' if not os.getenv('GEMINI_API_KEY') else 'Google Gemini'
     vram_required = model_vram.get(provider_name, 'Unknown')
     
+    # Add GPU detection info
+    gpu_info = None
+    if selector:
+        gpu_info = {
+            'vram_gb': selector.vram_gb,
+            'vendor': selector.gpu_vendor,
+            'recommended_model': recommended_model
+        }
+    
     # Get user preference defaults
     project_prefs = user_preferences.get('project', {})
     default_title = project_prefs.get('default_title', '')
@@ -85,6 +131,7 @@ def index():
                          current_model=provider_name,
                          provider_type=provider_type,
                          vram_required=vram_required,
+                         gpu_info=gpu_info,
                          default_title=default_title,
                          default_context=default_context)
 

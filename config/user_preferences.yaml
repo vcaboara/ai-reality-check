@@ -2,6 +2,17 @@
 # This file contains default values that pre-populate the UI fields
 # Overrides localStorage if values are set
 
+# Hardware configuration (for Docker containers that can't auto-detect)
+# Run: nvidia-smi --query-gpu=memory.total,name --format=csv,noheader,nounits
+hardware:
+  gpu:
+    # GPU VRAM in GB (detected from your RTX 4070 Ti)
+    vram_gb: 12.0
+    # GPU vendor (NVIDIA, AMD, Apple, or null)
+    vendor: "NVIDIA"
+    # GPU model name (optional, for display only)
+    model: "NVIDIA GeForce RTX 4070 Ti"
+
 # Project defaults
 project:
   # Default project title (leave empty to use localStorage or blank)

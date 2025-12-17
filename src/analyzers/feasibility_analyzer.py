@@ -226,10 +226,20 @@ Be concise, professional, and grounded in current engineering knowledge.
         Returns:
             Analysis results dictionary
         """
-        from asmf.parsers import PDFParser
-
+        import pypdf
+        
         logger.info(f"Parsing PDF: {pdf_path}")
-        parser = PDFParser(pdf_path)
-        text = parser.extract_text()
+        
+        # Extract text from PDF using pypdf
+        text_parts = []
+        try:
+            with open(pdf_path, 'rb') as f:
+                reader = pypdf.PdfReader(f)
+                for page in reader.pages:
+                    text_parts.append(page.extract_text())
+            text = '\n\n'.join(text_parts)
+        except Exception as e:
+            logger.error(f"Failed to parse PDF: {e}")
+            raise ValueError(f"Could not extract text from PDF: {e}")
 
         return self.analyze(text, context)
