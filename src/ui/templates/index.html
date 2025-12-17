@@ -349,6 +349,24 @@
     </div>
 
     <script>
+        // Load saved values from localStorage
+        window.addEventListener('DOMContentLoaded', () => {
+            const title = localStorage.getItem('project_title');
+            const context = localStorage.getItem('project_context');
+            
+            if (title) document.getElementById('title').value = title;
+            if (context) document.getElementById('context').value = context;
+        });
+
+        // Save values to localStorage as user types
+        document.getElementById('title').addEventListener('input', (e) => {
+            localStorage.setItem('project_title', e.target.value);
+        });
+
+        document.getElementById('context').addEventListener('input', (e) => {
+            localStorage.setItem('project_context', e.target.value);
+        });
+
         // Tab switching
         document.querySelectorAll('.tab').forEach(tab => {
             tab.addEventListener('click', () => {

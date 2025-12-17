@@ -29,16 +29,20 @@ Edit `.env` to configure:
 
 ## Recommended Models
 
-Fast (2-4GB):
-- `llama3.2:3b` - Recommended default, fast, good quality
-- `phi3:mini` - Very fast, 2GB
+**For Technical/Engineering Analysis (Recommended):**
+- `qwen2.5-coder:7b` - **Best balanced choice** (8GB RAM)
+- `qwen2.5-coder:14b` - Better quality (16GB RAM)
+- `qwen2.5-coder:32b` - Highest quality (32GB+ RAM)
 
-Balanced (8-16GB):
-- `llama3.1:8b` - Good balance
-- `qwen2.5-coder:7b` - Better for technical analysis
+**General Purpose (Faster but less technical):**
+- `llama3.2:3b` - Fast, general knowledge (4GB RAM)
+- `llama3.1:8b` - Good balance (8GB RAM)
+- `phi3:mini` - Very fast, limited (2GB RAM)
 
-High Quality (32GB+):
-- `qwen2.5-coder:32b` - Best quality, slower
+**Why qwen2.5-coder:** Specifically trained on technical/code content, better at:
+- Understanding engineering specifications
+- Analyzing technical feasibility
+- Identifying material/process constraints
 
 ## Commands
 

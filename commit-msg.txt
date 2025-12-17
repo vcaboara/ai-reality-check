@@ -1,17 +1,17 @@
-﻿[AI] fix: resolve Docker build issues for UI improvements
+﻿[AI] feat: improve results page, add field persistence, update model recommendations
 
-- Added tool.hatch.build.targets.wheel.packages = ["src"] to pyproject.toml
-- Updated .dockerignore to allow README.md (!README.md)
-- Fixed import: src.analyzers.feasibility_analyzer
-- Pass Path object (not string) to DomainConfig
-- Included README.md in Dockerfile COPY statement
+Changes:
+- Created results.html with proper UI (no raw JSON, blank state if empty)
+- Added localStorage persistence for title and context fields
+- Updated model recommendations to qwen2.5-coder:7b as default
+- Updated DOCKER.md with rationale for technical analysis models
+- Updated UI_GUIDE.md with persistence info
 
-All features now working:
-- Model display in header 
-- Context input field 
-- Multi-file upload 
-
-Tested and verified functionality.
+Benefits:
+- Better UX: results page shows cards, not JSON
+- Convenience: form fields auto-save and restore
+- Quality: better default model for engineering analysis
+- Clarity: explains why qwen2.5-coder is better for technical work
 
 ---
 AI-Generated-By: GitHub Copilot (Claude Sonnet 4.5)

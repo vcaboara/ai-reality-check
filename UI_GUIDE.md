@@ -66,10 +66,20 @@ The analysis includes:
 ## Current AI Model
 
 The UI displays the current model in the header:
-- **Ollama**: Local model (e.g., llama3.2:3b) - Private, no API costs
+- **Ollama**: Local model (e.g., qwen2.5-coder:7b) - Private, no API costs
 - **Google Gemini**: Cloud API - Faster, requires API key
 
+**Recommended:** Use `qwen2.5-coder:7b` or higher for best technical analysis quality.
+
 Configure via environment variables (see `.env.example`).
+
+## Field Persistence
+
+**Your inputs are automatically saved** as you type:
+- Project Title
+- Additional Context
+
+These persist across page reloads using browser localStorage. To clear saved values, clear your browser data or use incognito mode.
 
 ## Multi-File Analysis
 
