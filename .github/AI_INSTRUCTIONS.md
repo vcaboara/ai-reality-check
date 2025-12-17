@@ -1,103 +1,53 @@
 # AI Assistant Guidelines
 
-Copy to your AI assistant configuration directory (`.cursor/rules/`, `.clinerules/`, etc.)
-
 ## ⚠️ CRITICAL: AI Commit Attribution
 
-**MANDATORY for EVERY AI-generated commit and PR:**
+**MANDATORY:** Every AI-generated commit MUST have:
+- **[AI] prefix**: `[AI] feat: add feature`
+- **Attribution footer**: `---\nAI-Generated-By: GitHub Copilot (Claude Sonnet 4.5)`
 
-1. **[AI] prefix** in commit title: `[AI] feat: add feature`
-2. **Attribution footer** in commit body:
-   ```
-   ---
-   AI-Generated-By: GitHub Copilot (Claude Sonnet 4.5)
-   ```
-
-**No exceptions.** Use file-based commits:
+**Use file-based commits:**
 ```powershell
 @'
 [AI] feat: add feature
 
-Detailed description
+Description
 
 ---
 AI-Generated-By: GitHub Copilot (Claude Sonnet 4.5)
 '@ | Out-File -FilePath commit-msg.txt -Encoding utf8
-git commit -F commit-msg.txt
-rm commit-msg.txt
+git commit -F commit-msg.txt; rm commit-msg.txt
 ```
 
 ## Action-Focused Behavior
 
 **ALWAYS:**
-- Implement immediately when asked to "do it" or "fix it"
-- Check ALL command exit codes (0 = success, non-zero = failure)
-- Read COMPLETE stdout AND stderr output
-- Report errors immediately with exact error text
-- **Use temporary files for large messages** (PR bodies >100 chars, multi-line commits)
+- Implement immediately on "do it"/"fix it"
+- Check exit codes (0 = success)
+- Read stdout AND stderr completely
+- Use temp files for messages >100 chars
 - Verify tests pass before claiming success
-- Add AI attribution to commits: `[AI]` prefix + attribution footer
 
 **NEVER:**
-- Claim success without checking exit codes
-- Ignore stderr/stdout output
-- Use `--no-verify` to bypass checks
-- Make multiple assumptions - verify first
-- Create issues instead of implementing fixes
-- Ask for permission after "do it" commands
+- Claim success without checking exit code
+- Ignore errors
+- Use `--no-verify`
+- Ask permission after "do it"
 
 ## Token Efficiency
 
-Target: <5K tokens per simple task, <10K for complex tasks
+Target: <5K tokens/simple task
 
-**Waste Prevention:**
-- Don't explain - implement
-- Don't offer options - pick best solution
-- Don't repeat context - reference memory files
-- Don't over-ask - clarify once, proceed
-- Don't over-document - code should be self-explanatory
+- Implement, don't explain
+- Pick best solution, don't offer options
+- Clarify once, then proceed
 
-## Verification Checklist
+## Verification
 
-Before claiming "done":
-1. ✅ Exit code is 0
-2. ✅ No errors in output
-3. ✅ Tests pass
-4. ✅ Files exist where expected
-5. ✅ Changes committed if needed
-
-## Using Files for Messages
-
-To avoid token waste and formatting issues, use temporary files for:
-- PR descriptions >100 characters
-- Multi-line commit messages
-- Complex command input
-
-**Example:**
-```powershell
-# PR creation
-@'
-Short description
-
-Changes:
-- Point 1
-- Point 2
-'@ | Out-File -FilePath pr-body.txt -Encoding utf8
-gh pr create --title "Title" --body-file pr-body.txt
-rm pr-body.txt
-
-# Commit messages
-@'
-feat: add new feature
-
-Detailed explanation
-
----
-AI-Generated-By: GitHub Copilot (Claude Sonnet 4.5)
-'@ | Out-File -FilePath commit-msg.txt -Encoding utf8
-git commit -F commit-msg.txt
-rm commit-msg.txt
-```
+Before "done":
+1. Exit code = 0
+2. No errors in output
+3. Tests pass
 
 ## Command Verification
 
