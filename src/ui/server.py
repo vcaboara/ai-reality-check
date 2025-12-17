@@ -36,6 +36,17 @@ app.config['RESULTS_FOLDER'].mkdir(parents=True, exist_ok=True)
 DOMAIN_CONFIG = Path(__file__).parent.parent.parent / 'config' / 'domain.yaml'
 analyzer = FeasibilityAnalyzer(domain_config_path=DOMAIN_CONFIG)
 
+# Load user preferences
+USER_PREFS_CONFIG = Path(__file__).parent.parent.parent / 'config' / 'user_preferences.yaml'
+user_preferences = {}
+if USER_PREFS_CONFIG.exists():
+    import yaml
+    with open(USER_PREFS_CONFIG, 'r', encoding='utf-8') as f:
+        user_preferences = yaml.safe_load(f) or {}
+        logger.info(f"Loaded user preferences from {USER_PREFS_CONFIG}")
+else:
+    logger.info("No user preferences file found, using defaults")
+
 # In-memory conversation storage (for demo - use Redis/DB for production)
 conversations: Dict[str, List[Dict]] = {}
 
@@ -54,9 +65,16 @@ def index():
     provider_name = os.getenv('OLLAMA_MODEL', 'llama3.2:3b') if not os.getenv('GEMINI_API_KEY') else 'Gemini'
     provider_type = 'Ollama' if not os.getenv('GEMINI_API_KEY') else 'Google Gemini'
     
+    # Get user preference defaults
+    project_prefs = user_preferences.get('project', {})
+    default_title = project_prefs.get('default_title', '')
+    default_context = project_prefs.get('default_context', '')
+    
     return render_template('index.html', 
                          current_model=provider_name,
-                         provider_type=provider_type)
+                         provider_type=provider_type,
+                         default_title=default_title,
+                         default_context=default_context)
 
 
 @app.route('/analyze', methods=['POST'])
@@ -164,7 +182,13 @@ def analyze():
 
 @app.route('/results')
 def list_results():
-    """List all saved analysis results."""
+    """Display results page."""
+    return render_template('results.html')
+
+
+@app.route('/api/results')
+def api_list_results():
+    """API endpoint to list all saved analysis results."""
     try:
         results = []
         for result_file in app.config['RESULTS_FOLDER'].glob('*.json'):

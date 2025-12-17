@@ -349,10 +349,16 @@
     </div>
 
     <script>
-        // Load saved values from localStorage
+        // Config defaults from server
+        const configDefaults = {
+            title: "{{ default_title }}",
+            context: "{{ default_context }}"
+        };
+
+        // Load saved values from localStorage, fallback to config defaults
         window.addEventListener('DOMContentLoaded', () => {
-            const title = localStorage.getItem('project_title');
-            const context = localStorage.getItem('project_context');
+            const title = localStorage.getItem('project_title') || configDefaults.title;
+            const context = localStorage.getItem('project_context') || configDefaults.context;
             
             if (title) document.getElementById('title').value = title;
             if (context) document.getElementById('context').value = context;

@@ -250,7 +250,7 @@
     <script>
         async function loadResults() {
             try {
-                const response = await fetch('/results');
+                const response = await fetch('/api/results');
                 const data = await response.json();
 
                 document.getElementById('loading').style.display = 'none';
