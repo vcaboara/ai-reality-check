@@ -37,8 +37,8 @@ data/uploads/*
 data/results/*
 
 # Documentation
-*.md
 docs/
+!README.md
 
 # CI/CD
 .github/
