@@ -39,6 +39,9 @@ analyzer = FeasibilityAnalyzer(domain_config_path=DOMAIN_CONFIG)
 # In-memory conversation storage (for demo - use Redis/DB for production)
 conversations: Dict[str, List[Dict]] = {}
 
+# In-memory conversation storage (for demo - use Redis/DB for production)
+conversations: Dict[str, List[Dict]] = {}
+
 ALLOWED_EXTENSIONS = {'pdf', 'txt'}
 
 
