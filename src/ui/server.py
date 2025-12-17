@@ -5,8 +5,9 @@ import logging
 import os
 from datetime import datetime
 from pathlib import Path
+from typing import Dict, List
 
-from flask import Flask, render_template, request, jsonify, send_from_directory
+from flask import Flask, render_template, request, jsonify, send_from_directory, session
 from werkzeug.utils import secure_filename
 
 from analyzers import FeasibilityAnalyzer
@@ -20,6 +21,7 @@ logger = logging.getLogger(__name__)
 
 # Initialize Flask app
 app = Flask(__name__)
+app.secret_key = os.getenv('SECRET_KEY', os.urandom(24).hex())
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max file size
 app.config['UPLOAD_FOLDER'] = Path(
     __file__).parent.parent.parent / 'data' / 'uploads'
@@ -33,6 +35,9 @@ app.config['RESULTS_FOLDER'].mkdir(parents=True, exist_ok=True)
 # Initialize analyzer
 DOMAIN_CONFIG = Path(__file__).parent.parent.parent / 'config' / 'domain.yaml'
 analyzer = FeasibilityAnalyzer(domain_config_path=str(DOMAIN_CONFIG))
+
+# In-memory conversation storage (for demo - use Redis/DB for production)
+conversations: Dict[str, List[Dict]] = {}
 
 ALLOWED_EXTENSIONS = {'pdf', 'txt'}
 
@@ -178,6 +183,101 @@ def health():
         'domain': analyzer.domain_config.domain_name,
         'provider': analyzer.expert.__class__.__name__
     })
+
+
+@app.route('/chat')
+def chat_page():
+    """Render interactive chat interface."""
+    return render_template('chat.html')
+
+
+@app.route('/chat', methods=['POST'])
+def chat():
+    """Handle interactive chat messages with conversation context."""
+    try:
+        data = request.get_json()
+        message = data.get('message', '').strip()
+        session_id = data.get('session_id')
+        
+        if not message:
+            return jsonify({'error': 'No message provided'}), 400
+        
+        if not session_id:
+            return jsonify({'error': 'No session ID provided'}), 400
+        
+        # Initialize conversation history for this session
+        if session_id not in conversations:
+            conversations[session_id] = []
+        
+        conversation = conversations[session_id]
+        
+        # Add user message to history
+        conversation.append({
+            'role': 'user',
+            'content': message,
+            'timestamp': datetime.now().isoformat()
+        })
+        
+        # Build context from conversation history
+        context_text = "\n\n".join([
+            f"{'User' if msg['role'] == 'user' else 'Assistant'}: {msg['content']}"
+            for msg in conversation[-5:]  # Last 5 exchanges for context
+        ])
+        
+        # Get AI response with conversation context
+        from asmf.providers import AIProviderFactory
+        provider = AIProviderFactory.create_provider()
+        
+        # Build prompt with conversation context
+        if len(conversation) == 1:
+            # First message - full feasibility analysis
+            prompt = f"""Perform a feasibility analysis on the following project/idea:
+
+{message}
+
+Provide a structured response with:
+1. FEASIBILITY & RISK - Technical viability and constraints
+2. EFFICIENCY & OPTIMIZATION - Performance assessment
+3. PROPOSED IMPROVEMENTS - Actionable recommendations
+
+Be conversational and ready to answer follow-up questions."""
+        else:
+            # Follow-up question - use conversation context
+            prompt = f"""Previous conversation:
+{context_text}
+
+New question: {message}
+
+Provide a helpful, conversational response that builds on the previous discussion. Reference earlier points when relevant."""
+        
+        response_text = provider.analyze_text(
+            prompt,
+            system_prompt="You are a helpful technical expert providing interactive feasibility analysis. Be conversational, clear, and willing to clarify or expand on any point."
+        )
+        
+        # Add assistant response to history
+        conversation.append({
+            'role': 'assistant',
+            'content': response_text,
+            'timestamp': datetime.now().isoformat()
+        })
+        
+        # Limit conversation history to prevent memory issues
+        if len(conversation) > 20:
+            conversation = conversation[-20:]
+            conversations[session_id] = conversation
+        
+        logger.info(f"Chat response for session {session_id}: {len(response_text)} chars")
+        
+        return jsonify({
+            'success': True,
+            'response': response_text,
+            'message_count': len([m for m in conversation if m['role'] == 'user'])
+        })
+        
+    except Exception as e:
+        logger.error(f"Chat error: {e}", exc_info=True)
+        return jsonify({'error': str(e)}), 500
 
 
 if __name__ == '__main__':
