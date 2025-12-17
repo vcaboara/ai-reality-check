@@ -1,19 +1,23 @@
 services:
-  ollama:
-    image: ollama/ollama:latest
-    container_name: ai-reality-check-ollama
-    ports:
-      - "11434:11434"
-    volumes:
-      - ollama_data:/root/.ollama
-    environment:
-      - OLLAMA_HOST=0.0.0.0
-    restart: unless-stopped
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:11434/"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
+  # Ollama service (optional - uncomment if not running Ollama locally)
+  # If you have Ollama running on your host, leave this commented out
+  # and use OLLAMA_BASE_URL=http://host.docker.internal:11434 in web service
+  
+  # ollama:
+  #   image: ollama/ollama:latest
+  #   container_name: ai-reality-check-ollama
+  #   ports:
+  #     - "11434:11434"
+  #   volumes:
+  #     - ollama_data:/root/.ollama
+  #   environment:
+  #     - OLLAMA_HOST=0.0.0.0
+  #   restart: unless-stopped
+  #   healthcheck:
+  #     test: ["CMD", "curl", "-f", "http://localhost:11434/"]
+  #     interval: 30s
+  #     timeout: 10s
+  #     retries: 3
 
   web:
     build:
@@ -26,14 +30,13 @@ services:
       - ./data:/app/data
       - ./config:/app/config
     environment:
-      - OLLAMA_BASE_URL=http://ollama:11434
-      - OLLAMA_MODEL=${OLLAMA_MODEL:-llama3.2:3b}
+      # Use host.docker.internal to connect to Ollama running on host machine
+      # Or use http://ollama:11434 if using the containerized Ollama service above
+      - OLLAMA_BASE_URL=${OLLAMA_BASE_URL:-http://host.docker.internal:11434}
+      - OLLAMA_MODEL=${OLLAMA_MODEL:-qwen2.5-coder:7b}
       - GEMINI_API_KEY=${GEMINI_API_KEY:-}
       - FLASK_ENV=${FLASK_ENV:-production}
       - PORT=5000
-    depends_on:
-      ollama:
-        condition: service_healthy
     restart: unless-stopped
 
 volumes:

@@ -1,23 +1,18 @@
-﻿[AI] fix: render results page as HTML, add config-based field defaults
+﻿[AI] fix: resolve Ollama port conflict in docker-compose
 
-Fixes:
-- /results now renders results.html template (not JSON)
-- Created /api/results endpoint for AJAX calls
-- results.html fetches from /api/results
+Changes:
+- Commented out Ollama service in docker-compose.yml
+- Updated OLLAMA_BASE_URL to use host.docker.internal:11434 by default
+- Updated default model to qwen2.5-coder:7b
+- Removed depends_on for Ollama service
 
-New feature - Config-based defaults:
-- Created config/user_preferences.yaml for default values
-- Fields use: localStorage > config defaults > blank
-- Useful for teams with common project parameters
+Rationale:
+- Most users run Ollama locally on port 11434
+- Having Docker try to start another Ollama causes port conflicts
+- host.docker.internal allows container to reach host services
+- Users who want containerized Ollama can uncomment the service
 
-Priority: localStorage (user input) > config file > empty
-
-Example user_preferences.yaml:
-```yaml
-project:
-  default_title: "Thermal Processing System"
-  default_context: "Budget: $500K\nTimeline: 18 months"
-```
+Now works without port conflicts when Ollama is running locally.
 
 ---
 AI-Generated-By: GitHub Copilot (Claude Sonnet 4.5)
