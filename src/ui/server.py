@@ -61,9 +61,20 @@ def allowed_file(filename: str) -> bool:
 @app.route('/')
 def index():
     """Render main page with model info."""
+    # Model VRAM requirements
+    model_vram = {
+        'llama3.2:3b': '4GB',
+        'phi3:mini': '2GB',
+        'llama3.1:8b': '8GB',
+        'qwen2.5-coder:7b': '8GB',
+        'qwen2.5-coder:14b': '16GB',
+        'qwen2.5-coder:32b': '32GB+',
+    }
+    
     # Get current model/provider info
-    provider_name = os.getenv('OLLAMA_MODEL', 'llama3.2:3b') if not os.getenv('GEMINI_API_KEY') else 'Gemini'
+    provider_name = os.getenv('OLLAMA_MODEL', 'qwen2.5-coder:7b') if not os.getenv('GEMINI_API_KEY') else 'Gemini'
     provider_type = 'Ollama' if not os.getenv('GEMINI_API_KEY') else 'Google Gemini'
+    vram_required = model_vram.get(provider_name, 'Unknown')
     
     # Get user preference defaults
     project_prefs = user_preferences.get('project', {})
@@ -73,6 +84,7 @@ def index():
     return render_template('index.html', 
                          current_model=provider_name,
                          provider_type=provider_type,
+                         vram_required=vram_required,
                          default_title=default_title,
                          default_context=default_context)
 

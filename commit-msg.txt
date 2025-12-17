@@ -1,18 +1,20 @@
-﻿[AI] fix: resolve Ollama port conflict in docker-compose
+﻿[AI] feat: update model display with VRAM requirements
 
 Changes:
-- Commented out Ollama service in docker-compose.yml
-- Updated OLLAMA_BASE_URL to use host.docker.internal:11434 by default
-- Updated default model to qwen2.5-coder:7b
-- Removed depends_on for Ollama service
+- Fixed default model fallback to qwen2.5-coder:7b (was llama3.2:3b)
+- Added VRAM requirements to UI header display
+- Created comprehensive model comparison table in DOCKER.md
+- Shows model name with RAM requirement: "qwen2.5-coder:7b (8GB RAM)"
 
-Rationale:
-- Most users run Ollama locally on port 11434
-- Having Docker try to start another Ollama causes port conflicts
-- host.docker.internal allows container to reach host services
-- Users who want containerized Ollama can uncomment the service
+Model VRAM Reference:
+- phi3:mini - 2GB
+- llama3.2:3b - 4GB  
+- llama3.1:8b - 8GB
+- qwen2.5-coder:7b - 8GB (recommended)
+- qwen2.5-coder:14b - 16GB
+- qwen2.5-coder:32b - 32GB+
 
-Now works without port conflicts when Ollama is running locally.
+Users can now see at a glance what hardware their model requires.
 
 ---
 AI-Generated-By: GitHub Copilot (Claude Sonnet 4.5)

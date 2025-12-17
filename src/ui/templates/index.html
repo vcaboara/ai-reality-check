@@ -289,7 +289,7 @@
                 <a href="/results">📊 View Results</a>
             </div>
             <div style="margin-top: 10px; font-size: 0.9em; opacity: 0.8;">
-                🤖 Using: {{ provider_type }} ({{ current_model }})
+                🤖 {{ provider_type }}: {{ current_model }}{% if vram_required != 'Unknown' %} ({{ vram_required }} RAM){% endif %}
             </div>
         </header>
 
