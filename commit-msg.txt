@@ -1,0 +1,17 @@
+﻿[AI] feat: enhance UI with model display, context input, and multi-file support
+
+Added features:
+- Display current AI model/provider in header
+- Additional context field for constraints and questions
+- Multi-file upload support (analyze multiple PDFs/TXTs together)
+- Comprehensive UI_GUIDE.md with usage examples
+- Pass user context through to analyzer
+
+Benefits:
+- Users know which model is being used
+- Better analysis with additional context
+- Can upload multiple related documents
+- Clear instructions for optimal results
+
+---
+AI-Generated-By: GitHub Copilot (Claude Sonnet 4.5)

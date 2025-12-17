@@ -49,8 +49,14 @@ def allowed_file(filename: str) -> bool:
 
 @app.route('/')
 def index():
-    """Render main page."""
-    return render_template('index.html')
+    """Render main page with model info."""
+    # Get current model/provider info
+    provider_name = os.getenv('OLLAMA_MODEL', 'llama3.2:3b') if not os.getenv('GEMINI_API_KEY') else 'Gemini'
+    provider_type = 'Ollama' if not os.getenv('GEMINI_API_KEY') else 'Google Gemini'
+    
+    return render_template('index.html', 
+                         current_model=provider_name,
+                         provider_type=provider_type)
 
 
 @app.route('/analyze', methods=['POST'])
@@ -60,6 +66,12 @@ def analyze():
         # Check if text input provided
         text_input = request.form.get('text')
         title = request.form.get('title', 'Untitled Project')
+        user_context = request.form.get('context', '')
+
+        # Build context dict
+        context = {'title': title}
+        if user_context:
+            context['additional_context'] = user_context
 
         result = None
 
@@ -68,41 +80,59 @@ def analyze():
             logger.info(f"Analyzing text input: {title}")
             result = analyzer.analyze(
                 text_input,
-                context={'title': title}
+                context=context
             )
 
         elif 'file' in request.files:
-            # Analyze uploaded file
-            file = request.files['file']
-
-            if file.filename == '':
+            # Analyze uploaded file(s)
+            files = request.files.getlist('file')
+            
+            if not files or all(f.filename == '' for f in files):
                 return jsonify({'error': 'No file selected'}), 400
 
-            if not allowed_file(file.filename):
-                return jsonify({'error': 'Invalid file type. Allowed: PDF, TXT'}), 400
+            # Process all files and combine text
+            combined_text = []
+            
+            for file in files:
+                if file.filename == '':
+                    continue
+                    
+                if not allowed_file(file.filename):
+                    return jsonify({'error': f'Invalid file type: {file.filename}. Allowed: PDF, TXT'}), 400
 
-            # Save file
-            filename = secure_filename(file.filename)
-            timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-            unique_filename = f"{timestamp}_{filename}"
-            filepath = app.config['UPLOAD_FOLDER'] / unique_filename
+                # Save file
+                filename = secure_filename(file.filename)
+                timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+                unique_filename = f"{timestamp}_{filename}"
+                filepath = app.config['UPLOAD_FOLDER'] / unique_filename
 
-            file.save(filepath)
-            logger.info(f"Saved upload: {filepath}")
+                file.save(filepath)
+                logger.info(f"Saved upload: {filepath}")
 
-            # Analyze based on file type
-            if filename.endswith('.pdf'):
-                result = analyzer.analyze_pdf(
-                    str(filepath),
-                    context={'title': title}
-                )
-            else:
-                # Read text file
-                with open(filepath, 'r', encoding='utf-8') as f:
-                    text = f.read()
+                # Extract text based on file type
+                if filename.endswith('.pdf'):
+                    # For PDFs, use the analyzer's PDF parsing
+                    pdf_result = analyzer.analyze_pdf(
+                        str(filepath),
+                        context=context
+                    )
+                    # If multiple files, just extract the text for now
+                    if len(files) > 1:
+                        combined_text.append(f"\n--- File: {filename} ---\n")
+                        # We'll need to re-analyze combined content
+                    else:
+                        result = pdf_result
+                else:
+                    # Read text file
+                    with open(filepath, 'r', encoding='utf-8') as f:
+                        text = f.read()
+                    combined_text.append(f"\n--- File: {filename} ---\n{text}")
+            
+            # If multiple files, analyze combined text
+            if len(files) > 1 and not result:
                 result = analyzer.analyze(
-                    text,
-                    context={'title': title}
+                    '\n'.join(combined_text),
+                    context=context
                 )
 
         else:
