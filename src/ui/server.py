@@ -10,7 +10,7 @@ from typing import Dict, List
 from flask import Flask, render_template, request, jsonify, send_from_directory, session
 from werkzeug.utils import secure_filename
 
-from analyzers import FeasibilityAnalyzer
+from src.analyzers.feasibility_analyzer import FeasibilityAnalyzer
 
 # Configure logging
 logging.basicConfig(
@@ -34,7 +34,7 @@ app.config['RESULTS_FOLDER'].mkdir(parents=True, exist_ok=True)
 
 # Initialize analyzer
 DOMAIN_CONFIG = Path(__file__).parent.parent.parent / 'config' / 'domain.yaml'
-analyzer = FeasibilityAnalyzer(domain_config_path=str(DOMAIN_CONFIG))
+analyzer = FeasibilityAnalyzer(domain_config_path=DOMAIN_CONFIG)
 
 # In-memory conversation storage (for demo - use Redis/DB for production)
 conversations: Dict[str, List[Dict]] = {}
