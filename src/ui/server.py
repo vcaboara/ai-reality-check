@@ -34,6 +34,9 @@ app.config['RESULTS_FOLDER'] = Path(
 app.config['UPLOAD_FOLDER'].mkdir(parents=True, exist_ok=True)
 app.config['RESULTS_FOLDER'].mkdir(parents=True, exist_ok=True)
 
+# Metadata file for fast result listings
+METADATA_FILE = app.config['RESULTS_FOLDER'] / '_metadata.json'
+
 # Initialize analyzer
 DOMAIN_CONFIG = Path(__file__).parent.parent.parent / 'config' / 'domain.yaml'
 analyzer = FeasibilityAnalyzer(domain_config_path=DOMAIN_CONFIG)
@@ -93,6 +96,60 @@ ALLOWED_EXTENSIONS = {'pdf', 'txt'}
 def allowed_file(filename: str) -> bool:
     """Check if file extension is allowed."""
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+
+
+def load_metadata() -> List[Dict]:
+    """Load metadata from cached file."""
+    if METADATA_FILE.exists():
+        try:
+            with open(METADATA_FILE, 'r', encoding='utf-8') as f:
+                return json.load(f)
+        except (json.JSONDecodeError, IOError) as e:
+            logger.warning(f"Could not load metadata: {e}, rebuilding from files")
+    
+    # Rebuild metadata from existing files
+    return rebuild_metadata()
+
+
+def rebuild_metadata() -> List[Dict]:
+    """Rebuild metadata by scanning all result files."""
+    metadata = []
+    for result_file in app.config['RESULTS_FOLDER'].glob('*.json'):
+        if result_file.name == '_metadata.json':
+            continue
+        try:
+            with open(result_file, 'r', encoding='utf-8') as f:
+                data = json.load(f)
+                metadata.append({
+                    'filename': result_file.name,
+                    'title': data.get('title', 'Untitled'),
+                    'timestamp': data.get('timestamp', ''),  # Handle missing timestamp
+                })
+        except (json.JSONDecodeError, IOError) as e:
+            logger.warning(f"Skipping invalid result file {result_file.name}: {e}")
+    
+    save_metadata(metadata)
+    return metadata
+
+
+def save_metadata(metadata: List[Dict]) -> None:
+    """Save metadata to cached file."""
+    try:
+        with open(METADATA_FILE, 'w', encoding='utf-8') as f:
+            json.dump(metadata, f, indent=2)
+    except IOError as e:
+        logger.error(f"Could not save metadata: {e}")
+
+
+def add_result_metadata(filename: str, title: str, timestamp: str) -> None:
+    """Add new result to metadata cache."""
+    metadata = load_metadata()
+    metadata.append({
+        'filename': filename,
+        'title': title,
+        'timestamp': timestamp
+    })
+    save_metadata(metadata)
 
 
 @app.route('/')
@@ -218,15 +275,19 @@ def analyze():
         # Save result
         result_filename = f"analysis_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
         result_path = app.config['RESULTS_FOLDER'] / result_filename
+        timestamp = datetime.now().isoformat()
 
         with open(result_path, 'w', encoding='utf-8') as f:
             json.dump({
                 'title': title,
-                'timestamp': datetime.now().isoformat(),
+                'timestamp': timestamp,
                 'result': result
             }, f, indent=2)
 
         logger.info(f"Saved result: {result_path}")
+        
+        # Update metadata cache
+        add_result_metadata(result_filename, title, timestamp)
 
         return jsonify({
             'success': True,
@@ -249,20 +310,13 @@ def list_results():
 def api_list_results():
     """API endpoint to list all saved analysis results."""
     try:
-        results = []
-        for result_file in app.config['RESULTS_FOLDER'].glob('*.json'):
-            with open(result_file, 'r', encoding='utf-8') as f:
-                data = json.load(f)
-                results.append({
-                    'filename': result_file.name,
-                    'title': data.get('title', 'Untitled'),
-                    'timestamp': data.get('timestamp'),
-                })
+        # Load from metadata cache (fast - single file read)
+        metadata = load_metadata()
 
-        # Sort by timestamp (newest first)
-        results.sort(key=lambda x: x['timestamp'], reverse=True)
+        # Sort by timestamp (newest first), handle None timestamps
+        metadata.sort(key=lambda x: x.get('timestamp') or '', reverse=True)
 
-        return jsonify({'results': results})
+        return jsonify({'results': metadata})
 
     except Exception as e:
         logger.error(f"Error listing results: {e}", exc_info=True)
