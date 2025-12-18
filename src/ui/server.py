@@ -8,6 +8,7 @@ import yaml
 from datetime import datetime
 from pathlib import Path
 
+import markdown
 from asmf.llm import ModelSelector, TaskType
 from asmf.parsers import PDFParser
 from flask import Flask, jsonify, render_template, request
@@ -249,6 +250,32 @@ def add_result_metadata(filename: str, title: str, timestamp: str) -> None:
     save_metadata(metadata)
 
 
+def render_markdown_to_html(markdown_text: str) -> str:
+    """Convert markdown text to sanitized HTML.
+    
+    Args:
+        markdown_text: Raw markdown content
+        
+    Returns:
+        HTML string with proper formatting
+    """
+    md = markdown.Markdown(
+        extensions=[
+            'fenced_code',
+            'codehilite',
+            'tables',
+            'nl2br',
+        ],
+        extension_configs={
+            'codehilite': {
+                'css_class': 'highlight',
+                'linenums': False,
+            }
+        }
+    )
+    return md.convert(markdown_text)
+
+
 @app.route("/")
 def index():
     """Render main page with model info."""
@@ -398,6 +425,10 @@ def analyze():
         result_filename = f"analysis_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
         result_path = app.config["RESULTS_FOLDER"] / result_filename
         timestamp = datetime.now().isoformat()
+
+        # Convert markdown analysis to HTML for display
+        if "analysis" in result and isinstance(result["analysis"], str):
+            result["analysis_html"] = render_markdown_to_html(result["analysis"])
 
         with open(result_path, "w", encoding="utf-8") as f:
             json.dump({"title": title, "timestamp": timestamp,

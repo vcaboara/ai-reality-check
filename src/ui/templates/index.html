@@ -198,6 +198,59 @@
             margin-bottom: 10px;
         }
 
+        /* Markdown content styling */
+        .markdown-content h2 {
+            color: #667eea;
+            font-size: 1.5em;
+            margin-top: 20px;
+            margin-bottom: 10px;
+            border-bottom: 2px solid #e0e0e0;
+            padding-bottom: 5px;
+        }
+
+        .markdown-content h3 {
+            color: #764ba2;
+            font-size: 1.2em;
+            margin-top: 15px;
+            margin-bottom: 8px;
+        }
+
+        .markdown-content ul,
+        .markdown-content ol {
+            margin: 10px 0 10px 20px;
+            line-height: 1.8;
+        }
+
+        .markdown-content li {
+            margin-bottom: 5px;
+        }
+
+        .markdown-content p {
+            margin-bottom: 12px;
+            line-height: 1.7;
+        }
+
+        .markdown-content code {
+            background: #f0f2ff;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9em;
+        }
+
+        .markdown-content pre {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 5px;
+            overflow-x: auto;
+            border-left: 4px solid #667eea;
+        }
+
+        .markdown-content strong {
+            color: #333;
+            font-weight: 600;
+        }
+
         .error {
             background: #f8d7da;
             color: #721c24;
@@ -489,10 +542,15 @@
                 html += '</div>';
             }
 
-            // Main analysis
+            // Main analysis - render HTML from server
             html += '<div class="analysis-section">';
             html += '<h3>📋 Feasibility Analysis</h3>';
-            html += '<pre>' + result.analysis + '</pre>';
+            // Use pre-rendered HTML if available, fallback to plain text
+            if (result.analysis_html) {
+                html += '<div class="markdown-content">' + result.analysis_html + '</div>';
+            } else {
+                html += '<pre>' + result.analysis + '</pre>';
+            }
             html += '<div style="margin-top: 15px;">';
             html += '<a href="/chat" style="display: inline-block; padding: 8px 16px; background: #667eea; color: white; text-decoration: none; border-radius: 5px;">💬 Discuss this analysis in Chat</a>';
             html += '</div>';

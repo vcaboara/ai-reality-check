@@ -26,6 +26,7 @@ dependencies = [
     "pypdf>=4.0.0",
     "requests>=2.31.0",
     "python-dotenv>=1.0.0",
+    "markdown>=3.5.0",
     "ai-search-match-framework>=0.3.2",
 ]
 
