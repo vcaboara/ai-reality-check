@@ -7,7 +7,7 @@ WORKDIR /app
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
 
 # Copy dependency files first for better caching
-COPY pyproject.toml .
+COPY pyproject.toml README.md .
 
 # Install dependencies using uv (much faster than pip)
 RUN uv pip install --system --no-cache .

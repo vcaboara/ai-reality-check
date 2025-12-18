@@ -227,8 +227,10 @@ Be concise, professional, and grounded in current engineering knowledge.
             Analysis results dictionary
         """
         from asmf.parsers import PDFParser
-
+        
         logger.info(f"Parsing PDF: {pdf_path}")
+        
+        # Use ASMF's generic PDFParser
         parser = PDFParser(pdf_path)
         text = parser.extract_text()
 
