@@ -4,6 +4,7 @@ import json
 import logging
 import os
 import shutil
+import yaml
 from datetime import datetime
 from pathlib import Path
 
@@ -29,9 +30,12 @@ logger = logging.getLogger(__name__)
 # Initialize Flask app
 app = Flask(__name__)
 app.secret_key = os.getenv("SECRET_KEY", os.urandom(24).hex())
-app.config["MAX_CONTENT_LENGTH"] = 50 * 1024 * 1024  # 50MB max file size (for archives)
-app.config["UPLOAD_FOLDER"] = Path(__file__).parent.parent.parent / "data" / "uploads"
-app.config["RESULTS_FOLDER"] = Path(__file__).parent.parent.parent / "data" / "results"
+app.config["MAX_CONTENT_LENGTH"] = 50 * 1024 * \
+    1024  # 50MB max file size (for archives)
+app.config["UPLOAD_FOLDER"] = Path(
+    __file__).parent.parent.parent / "data" / "uploads"
+app.config["RESULTS_FOLDER"] = Path(
+    __file__).parent.parent.parent / "data" / "results"
 
 # Create directories
 app.config["UPLOAD_FOLDER"].mkdir(parents=True, exist_ok=True)
@@ -45,19 +49,19 @@ DOMAIN_CONFIG = Path(__file__).parent.parent.parent / "config" / "domain.yaml"
 analyzer = FeasibilityAnalyzer(domain_config_path=DOMAIN_CONFIG)
 
 # Load user preferences
-USER_PREFS_CONFIG = Path(__file__).parent.parent.parent / "config" / "user_preferences.yaml"
+USER_PREFS_CONFIG = Path(__file__).parent.parent.parent / \
+    "config" / "user_preferences.yaml"
 user_preferences = {}
 if USER_PREFS_CONFIG.exists():
-    import yaml
-
     with open(USER_PREFS_CONFIG, encoding="utf-8") as f:
         user_preferences = yaml.safe_load(f) or {}
-        logger.info(f"Loaded user preferences from {USER_PREFS_CONFIG}")
+    logger.info(f"Loaded user preferences from {USER_PREFS_CONFIG}")
 else:
     logger.info("No user preferences file found, using defaults")
 
 # Detect if running in container (skip GPU auto-detection if so)
-in_container = os.path.exists("/.dockerenv") or os.path.exists("/run/.containerenv")
+in_container = os.path.exists(
+    "/.dockerenv") or os.path.exists("/run/.containerenv")
 
 # Load GPU config from user_preferences.yaml (required for containers)
 try:
@@ -67,12 +71,14 @@ try:
     if config_vram:
         # Use manual config from user_preferences.yaml
         selector = ModelSelector(vram_gb=config_vram)
-        logger.info(f"Using GPU config from user_preferences.yaml: {config_vram}GB VRAM")
+        logger.info(
+            f"Using GPU config from user_preferences.yaml: {config_vram}GB VRAM")
 
         recommended_model = selector.select_model(
             TaskType.DOCUMENT_ANALYSIS, check_availability=False
         )
-        logger.info(f"Recommended model for {config_vram}GB VRAM: {recommended_model}")
+        logger.info(
+            f"Recommended model for {config_vram}GB VRAM: {recommended_model}")
 
         # Don't show warnings - user knows their hardware best
         # The config file documents available models for their VRAM tier
@@ -86,12 +92,14 @@ try:
     else:
         # Not in container - auto-detect from system
         selector = ModelSelector()
-        logger.info(f"Auto-detected: {selector.vram_gb}GB VRAM ({selector.gpu_vendor})")
+        logger.info(
+            f"Auto-detected: {selector.vram_gb}GB VRAM ({selector.gpu_vendor})")
 
         recommended_model = selector.select_model(
             TaskType.DOCUMENT_ANALYSIS, check_availability=False
         )
-        logger.info(f"Recommended model for {selector.vram_gb}GB VRAM: {recommended_model}")
+        logger.info(
+            f"Recommended model for {selector.vram_gb}GB VRAM: {recommended_model}")
 except Exception as e:
     logger.warning(f"Could not load GPU config: {e}")
     selector = None
@@ -100,7 +108,8 @@ except Exception as e:
 # In-memory conversation storage (for demo - use Redis/DB for production)
 conversations: dict[str, list[dict]] = {}
 
-ALLOWED_EXTENSIONS = {"pdf", "txt", "zip", "tar", "tgz"}  # Note: .tar.gz handled specially
+# Note: .tar.gz handled specially
+ALLOWED_EXTENSIONS = {"pdf", "txt", "zip", "tar", "tgz"}
 
 
 def allowed_file(filename: str) -> bool:
@@ -163,14 +172,17 @@ def process_archive_files(archive_path: Path) -> str:
         for file_path in supported_files:
             try:
                 text = extract_text_from_file(file_path)
-                combined_text.append(f"\n--- File: {file_path.name} ---\n{text}")
+                combined_text.append(
+                    f"\n--- File: {file_path.name} ---\n{text}")
                 logger.info(f"Extracted text from {file_path.name}")
             except Exception as e:
-                logger.warning(f"Failed to extract text from {file_path.name}: {e}")
+                logger.warning(
+                    f"Failed to extract text from {file_path.name}: {e}")
                 continue
 
         if not combined_text:
-            raise ValueError("Could not extract text from any files in archive")
+            raise ValueError(
+                "Could not extract text from any files in archive")
 
         return "\n".join(combined_text)
 
@@ -188,7 +200,8 @@ def load_metadata() -> list[dict]:
             with open(METADATA_FILE, encoding="utf-8") as f:
                 return json.load(f)
         except (OSError, json.JSONDecodeError) as e:
-            logger.warning(f"Could not load metadata: {e}, rebuilding from files")
+            logger.warning(
+                f"Could not load metadata: {e}, rebuilding from files")
 
     # Rebuild metadata from existing files
     return rebuild_metadata()
@@ -203,15 +216,17 @@ def rebuild_metadata() -> list[dict]:
         try:
             with open(result_file, encoding="utf-8") as f:
                 data = json.load(f)
-                metadata.append(
-                    {
-                        "filename": result_file.name,
-                        "title": data.get("title", "Untitled"),
-                        "timestamp": data.get("timestamp", ""),  # Handle missing timestamp
-                    }
-                )
+            metadata.append(
+                {
+                    "filename": result_file.name,
+                    "title": data.get("title", "Untitled"),
+                    # Handle missing timestamp
+                    "timestamp": data.get("timestamp", ""),
+                }
+            )
         except (OSError, json.JSONDecodeError) as e:
-            logger.warning(f"Skipping invalid result file {result_file.name}: {e}")
+            logger.warning(
+                f"Skipping invalid result file {result_file.name}: {e}")
 
     save_metadata(metadata)
     return metadata
@@ -229,7 +244,8 @@ def save_metadata(metadata: list[dict]) -> None:
 def add_result_metadata(filename: str, title: str, timestamp: str) -> None:
     """Add new result to metadata cache."""
     metadata = load_metadata()
-    metadata.append({"filename": filename, "title": title, "timestamp": timestamp})
+    metadata.append(
+        {"filename": filename, "title": title, "timestamp": timestamp})
     save_metadata(metadata)
 
 
@@ -252,7 +268,8 @@ def index():
         if not os.getenv("GEMINI_API_KEY")
         else "Gemini"
     )
-    provider_type = "Ollama" if not os.getenv("GEMINI_API_KEY") else "Google Gemini"
+    provider_type = "Ollama" if not os.getenv(
+        "GEMINI_API_KEY") else "Google Gemini"
     vram_required = model_vram.get(provider_name, "Unknown")
 
     # Add GPU detection info
@@ -343,20 +360,24 @@ def analyze():
                         # Extract and process archive
                         archive_text = process_archive_files(filepath)
                         combined_text.append(archive_text)
-                        temp_archives.append(filepath)  # Mark for later deletion
+                        # Mark for later deletion
+                        temp_archives.append(filepath)
                     elif filename.endswith(".pdf"):
                         # For PDFs, use the analyzer's PDF parsing
                         if len(files) == 1:
                             # Single PDF - use direct analysis
-                            result = analyzer.analyze_pdf(str(filepath), context=context)
+                            result = analyzer.analyze_pdf(
+                                str(filepath), context=context)
                         else:
                             # Multiple files - extract text for combining
                             text = extract_text_from_file(filepath)
-                            combined_text.append(f"\n--- File: {filename} ---\n{text}")
+                            combined_text.append(
+                                f"\n--- File: {filename} ---\n{text}")
                     else:
                         # Read text file
                         text = extract_text_from_file(filepath)
-                        combined_text.append(f"\n--- File: {filename} ---\n{text}")
+                        combined_text.append(
+                            f"\n--- File: {filename} ---\n{text}")
 
                 except (ArchiveExtractionError, SecurityValidationError, ValueError) as e:
                     logger.error(f"Error processing {filename}: {e}")
@@ -364,7 +385,8 @@ def analyze():
 
             # If multiple files or archives processed, analyze combined text
             if len(combined_text) > 0 and not result:
-                result = analyzer.analyze("\n".join(combined_text), context=context)
+                result = analyzer.analyze(
+                    "\n".join(combined_text), context=context)
             elif not result and len(files) == 1:
                 # Single file case should have been handled above
                 return jsonify({"error": "Failed to process file"}), 500
@@ -378,7 +400,8 @@ def analyze():
         timestamp = datetime.now().isoformat()
 
         with open(result_path, "w", encoding="utf-8") as f:
-            json.dump({"title": title, "timestamp": timestamp, "result": result}, f, indent=2)
+            json.dump({"title": title, "timestamp": timestamp,
+                      "result": result}, f, indent=2)
 
         logger.info(f"Saved result: {result_path}")
 
@@ -459,7 +482,8 @@ def chat():
         data = request.get_json()
         message = data.get("message", "").strip()
         session_id = data.get("session_id")
-        analysis_context = data.get("analysis_context")  # Get analysis context from frontend
+        # Get analysis context from frontend
+        analysis_context = data.get("analysis_context")
 
         if not message:
             return jsonify({"error": "No message provided"}), 400
@@ -475,7 +499,8 @@ def chat():
 
         # Add user message to history
         conversation.append(
-            {"role": "user", "content": message, "timestamp": datetime.now().isoformat()}
+            {"role": "user", "content": message,
+                "timestamp": datetime.now().isoformat()}
         )
 
         # Build context from conversation history
@@ -530,12 +555,13 @@ Provide a helpful, conversational response that builds on the previous discussio
 
         # Combine system context with user prompt for Ollama
         full_prompt = f"{system_context}\n\n{prompt}"
-        
+
         response_text = provider.analyze_text(full_prompt)
 
         # Add assistant response to history
         conversation.append(
-            {"role": "assistant", "content": response_text, "timestamp": datetime.now().isoformat()}
+            {"role": "assistant", "content": response_text,
+                "timestamp": datetime.now().isoformat()}
         )
 
         # Limit conversation history to prevent memory issues
@@ -543,7 +569,8 @@ Provide a helpful, conversational response that builds on the previous discussio
             conversation = conversation[-20:]
             conversations[session_id] = conversation
 
-        logger.info(f"Chat response for session {session_id}: {len(response_text)} chars")
+        logger.info(
+            f"Chat response for session {session_id}: {len(response_text)} chars")
 
         return jsonify(
             {
