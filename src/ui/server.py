@@ -3,10 +3,12 @@
 import json
 import logging
 import os
+import shutil
 from datetime import datetime
 from pathlib import Path
 
 from asmf.llm import ModelSelector, TaskType
+from asmf.parsers import PDFParser
 from flask import Flask, jsonify, render_template, request
 from werkzeug.utils import secure_filename
 
@@ -125,8 +127,6 @@ def extract_text_from_file(filepath: Path) -> str:
 
     if filename.endswith(".pdf"):
         # Use ASMF's PDFParser for PDF files
-        from asmf.parsers import PDFParser
-
         parser = PDFParser()
         return parser.extract_text(str(filepath))
     elif filename.endswith(".txt"):
@@ -150,8 +150,6 @@ def process_archive_files(archive_path: Path) -> str:
         ArchiveExtractionError: If extraction fails
         SecurityValidationError: If security checks fail
     """
-    import shutil
-
     temp_dir = None
     try:
         # Extract archive and get supported files
