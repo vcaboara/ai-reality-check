@@ -1,16 +1,15 @@
 """Tests for archive extraction and processing."""
 
-import os
 import shutil
+
+# Add src to path for imports
+import sys
 import tarfile
 import tempfile
 import zipfile
 from pathlib import Path
 
 import pytest
-
-# Add src to path for imports
-import sys
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 

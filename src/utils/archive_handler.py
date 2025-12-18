@@ -177,7 +177,7 @@ def extract_tar(archive_path: Path, extract_to: Path) -> list[Path]:
         else:
             mode = "r"
 
-        with tarfile.open(archive_path, mode) as tar_ref:
+        with tarfile.open(str(archive_path), mode) as tar_ref:  # type: ignore[call-overload]
             # Check number of files
             members = tar_ref.getmembers()
             if len(members) > MAX_FILES_IN_ARCHIVE:
@@ -257,7 +257,7 @@ def find_supported_files(directory: Path, depth: int = 0) -> list[Path]:
     Returns:
         List of paths to supported document files
     """
-    supported_files = []
+    supported_files: list[Path] = []
 
     # Limit recursion depth to prevent processing deeply nested structures
     if depth > MAX_EXTRACTION_DEPTH:
