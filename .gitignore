@@ -70,3 +70,6 @@ test_ollama_direct.py
 compare_models.py
 download_models.py
 monitor_test.ps1
+
+# Documentation and/or alternative AI suggestsions
+*_suggestions/
