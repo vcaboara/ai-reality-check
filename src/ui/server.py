@@ -9,8 +9,8 @@ from datetime import datetime
 from pathlib import Path
 
 from asmf.llm import ModelSelector, TaskType
-from asmf.parsers import PDFParser
 from flask import Flask, jsonify, render_template, request
+from pypdf import PdfReader
 from werkzeug.utils import secure_filename
 
 from src.analyzers.feasibility_analyzer import FeasibilityAnalyzer
@@ -135,9 +135,12 @@ def extract_text_from_file(filepath: Path) -> str:
     filename = filepath.name.lower()
 
     if filename.endswith(".pdf"):
-        # PDFParser requires path at init, unavoidable per-file instantiation
-        parser = PDFParser(str(filepath))
-        return parser.extract_text()
+        # Extract text from PDF using pypdf
+        reader = PdfReader(str(filepath))
+        text = ""
+        for page in reader.pages:
+            text += page.extract_text() + "\n"
+        return text.strip()
     elif filename.endswith(".txt"):
         # Read text files directly
         with open(filepath, encoding="utf-8") as f:
