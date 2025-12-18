@@ -321,11 +321,14 @@
 
                 <div class="tab-content" id="file-content">
                     <div class="form-group">
-                        <label>Upload Document(s) (PDF or TXT) - Multiple files supported</label>
+                        <label>Upload Document(s) or Archive (PDF, TXT, ZIP, TAR.GZ) - Multiple files supported</label>
                         <div class="file-upload" id="fileUpload">
-                            <p>📁 Drop file(s) here or click to browse</p>
-                            <p style="font-size: 0.9em; color: #999; margin-top: 10px;">Max 16MB per file. Select multiple files to analyze together.</p>
-                            <input type="file" id="file" name="file" accept=".pdf,.txt" multiple>
+                            <p>📁 Drop file(s) or archive here or click to browse</p>
+                            <p style="font-size: 0.9em; color: #999; margin-top: 10px;">
+                                Max 16MB per file. Archives: ZIP, TAR.GZ (max 50MB, 100 files)<br>
+                                Select multiple files or upload an archive to analyze together.
+                            </p>
+                            <input type="file" id="file" name="file" accept=".pdf,.txt,.zip,.tar,.tar.gz,.tgz" multiple>
                         </div>
                         <div id="fileName" style="margin-top: 10px; color: #667eea;"></div>
                     </div>
