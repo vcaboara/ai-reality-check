@@ -153,6 +153,50 @@ def extract_text_from_file(filepath: Path) -> str:
         raise ValueError(f"Unsupported file type: {filename}")
 
 
+def extract_text_with_header(filepath: Path, include_header: bool = True) -> str:
+    """Extract text from file with optional header.
+    
+    Args:
+        filepath: Path to file
+        include_header: Whether to include filename header
+        
+    Returns:
+        Extracted text, optionally with header
+    """
+    text = extract_text_from_file(filepath)
+    if include_header:
+        return f"\n--- File: {filepath.name} ---\n{text}"
+    return text
+
+
+def process_multiple_files(filepaths: list[Path]) -> str:
+    """Process multiple files and combine their text.
+    
+    Args:
+        filepaths: List of file paths to process
+        
+    Returns:
+        Combined text from all files with headers
+        
+    Raises:
+        ValueError: If no text could be extracted
+    """
+    combined_text = []
+    for file_path in filepaths:
+        try:
+            text = extract_text_with_header(file_path)
+            combined_text.append(text)
+            logger.info(f"Extracted text from {file_path.name}")
+        except Exception as e:
+            logger.warning(f"Failed to extract text from {file_path.name}: {e}")
+            continue
+    
+    if not combined_text:
+        raise ValueError("Could not extract text from any files")
+    
+    return "\n".join(combined_text)
+
+
 def process_archive_files(archive_path: Path) -> str:
     """Process archive file and extract combined text from all supported files.
 
@@ -174,24 +218,8 @@ def process_archive_files(archive_path: Path) -> str:
         if not supported_files:
             raise ValueError("No supported files (PDF, TXT) found in archive")
 
-        # Extract text from each file
-        combined_text = []
-        for file_path in supported_files:
-            try:
-                text = extract_text_from_file(file_path)
-                combined_text.append(
-                    f"\n--- File: {file_path.name} ---\n{text}")
-                logger.info(f"Extracted text from {file_path.name}")
-            except Exception as e:
-                logger.warning(
-                    f"Failed to extract text from {file_path.name}: {e}")
-                continue
-
-        if not combined_text:
-            raise ValueError(
-                "Could not extract text from any files in archive")
-
-        return "\n".join(combined_text)
+        # Use generalized multi-file processing
+        return process_multiple_files(supported_files)
 
     finally:
         # Clean up temporary directory
@@ -381,10 +409,9 @@ def analyze():
             if not files or all(f.filename == "" for f in files):
                 return jsonify({"error": "No file selected"}), 400
 
-            # Process all files and combine text
-            combined_text = []
-            temp_archives = []  # Track archives for cleanup
-
+            # Collect file paths and track archives for cleanup
+            file_paths = []
+            
             for file in files:
                 if file.filename == "":
                     continue
@@ -403,44 +430,32 @@ def analyze():
                 # Save file to session cache
                 filepath = cache_uploaded_file(file, file.filename)
                 logger.info(f"Processing cached file: {filepath}")
+                file_paths.append(filepath)
 
-                try:
-                    # Check if it's an archive file
-                    if is_archive_file(filename):
-                        logger.info(f"Processing archive: {filename}")
-                        # Extract and process archive
-                        archive_text = process_archive_files(filepath)
-                        combined_text.append(archive_text)
-                        # Mark for later deletion
-                        temp_archives.append(filepath)
-                    elif filename.endswith(".pdf"):
-                        # For PDFs, use the analyzer's PDF parsing
-                        if len(files) == 1:
-                            # Single PDF - use direct analysis
-                            result = analyzer.analyze_pdf(
-                                str(filepath), context=context)
+            # Process files
+            try:
+                # Check for single PDF (use direct analyzer method)
+                if len(file_paths) == 1 and file_paths[0].name.lower().endswith(".pdf"):
+                    result = analyzer.analyze_pdf(str(file_paths[0]), context=context)
+                else:
+                    # Multiple files or mixed types - extract and combine text
+                    combined_text = []
+                    for filepath in file_paths:
+                        if is_archive_file(filepath.name):
+                            # Process archive
+                            logger.info(f"Processing archive: {filepath.name}")
+                            archive_text = process_archive_files(filepath)
+                            combined_text.append(archive_text)
                         else:
-                            # Multiple files - extract text for combining
-                            text = extract_text_from_file(filepath)
-                            combined_text.append(
-                                f"\n--- File: {filename} ---\n{text}")
-                    else:
-                        # Read text file
-                        text = extract_text_from_file(filepath)
-                        combined_text.append(
-                            f"\n--- File: {filename} ---\n{text}")
+                            # Regular file
+                            text = extract_text_with_header(filepath)
+                            combined_text.append(text)
+                    
+                    result = analyzer.analyze("\n".join(combined_text), context=context)
 
-                except (ArchiveExtractionError, SecurityValidationError, ValueError) as e:
-                    logger.error(f"Error processing {filename}: {e}")
-                    return jsonify({"error": str(e)}), 400
-
-            # If multiple files or archives processed, analyze combined text
-            if len(combined_text) > 0 and not result:
-                result = analyzer.analyze(
-                    "\n".join(combined_text), context=context)
-            elif not result and len(files) == 1:
-                # Single file case should have been handled above
-                return jsonify({"error": "Failed to process file"}), 500
+            except (ArchiveExtractionError, SecurityValidationError, ValueError) as e:
+                logger.error(f"Error processing files: {e}")
+                return jsonify({"error": str(e)}), 400
 
         else:
             return jsonify({"error": "No text or file provided"}), 400
