@@ -41,6 +41,10 @@ app.config["RESULTS_FOLDER"] = Path(
 app.config["UPLOAD_FOLDER"].mkdir(parents=True, exist_ok=True)
 app.config["RESULTS_FOLDER"].mkdir(parents=True, exist_ok=True)
 
+# Cached uploads directory for session persistence
+CACHED_UPLOADS_DIR = app.config["UPLOAD_FOLDER"] / "cached"
+CACHED_UPLOADS_DIR.mkdir(exist_ok=True)
+
 # Metadata file for fast result listings
 METADATA_FILE = app.config["RESULTS_FOLDER"] / "_metadata.json"
 
@@ -247,9 +251,58 @@ def save_metadata(metadata: list[dict]) -> None:
 def add_result_metadata(filename: str, title: str, timestamp: str) -> None:
     """Add new result to metadata cache."""
     metadata = load_metadata()
-    metadata.append(
-        {"filename": filename, "title": title, "timestamp": timestamp})
+    metadata.append({"filename": filename, "title": title, "timestamp": timestamp})
     save_metadata(metadata)
+
+
+def get_session_upload_dir() -> Path:
+    """Get or create session-specific upload directory."""
+    from flask import session
+    
+    # Create session ID if not exists
+    if "upload_session_id" not in session:
+        session["upload_session_id"] = os.urandom(16).hex()
+    
+    session_dir = CACHED_UPLOADS_DIR / session["upload_session_id"]
+    session_dir.mkdir(exist_ok=True)
+    return session_dir
+
+
+def cache_uploaded_file(file, original_filename: str) -> Path:
+    """Cache uploaded file in session directory."""
+    session_dir = get_session_upload_dir()
+    filename = secure_filename(original_filename)
+    filepath = session_dir / filename
+    file.save(filepath)
+    logger.info(f"Cached file: {filepath}")
+    return filepath
+
+
+def get_cached_files() -> list[Path]:
+    """Get list of cached files for current session."""
+    from flask import session
+    
+    if "upload_session_id" not in session:
+        return []
+    
+    session_dir = CACHED_UPLOADS_DIR / session["upload_session_id"]
+    if not session_dir.exists():
+        return []
+    
+    return list(session_dir.glob("*"))
+
+
+def clear_cached_files() -> None:
+    """Clear cached files for current session."""
+    from flask import session
+    
+    if "upload_session_id" not in session:
+        return
+    
+    session_dir = CACHED_UPLOADS_DIR / session["upload_session_id"]
+    if session_dir.exists():
+        shutil.rmtree(session_dir)
+        logger.info(f"Cleared session cache: {session_dir}")
 
 
 @app.route("/")
@@ -347,14 +400,9 @@ def analyze():
                         400,
                     )
 
-                # Save file
-                filename = secure_filename(file.filename)
-                timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-                unique_filename = f"{timestamp}_{filename}"
-                filepath = app.config["UPLOAD_FOLDER"] / unique_filename
-
-                file.save(filepath)
-                logger.info(f"Saved upload: {filepath}")
+                # Save file to session cache
+                filepath = cache_uploaded_file(file, file.filename)
+                logger.info(f"Processing cached file: {filepath}")
 
                 try:
                     # Check if it's an archive file
@@ -470,6 +518,37 @@ def health():
             "provider": analyzer.expert.__class__.__name__,
         }
     )
+
+
+@app.route("/api/cached-files")
+def get_cached_files_api():
+    """Get list of cached files for current session."""
+    try:
+        cached_files = get_cached_files()
+        return jsonify({
+            "files": [
+                {
+                    "name": f.name,
+                    "size": f.stat().st_size,
+                    "modified": f.stat().st_mtime
+                }
+                for f in cached_files
+            ]
+        })
+    except Exception as e:
+        logger.error(f"Error listing cached files: {e}")
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route("/api/clear-cache", methods=["POST"])
+def clear_cache_api():
+    """Clear cached files for current session."""
+    try:
+        clear_cached_files()
+        return jsonify({"success": True, "message": "Cache cleared"})
+    except Exception as e:
+        logger.error(f"Error clearing cache: {e}")
+        return jsonify({"error": str(e)}), 500
 
 
 @app.route("/chat")
