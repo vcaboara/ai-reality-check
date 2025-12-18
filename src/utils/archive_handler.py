@@ -22,7 +22,7 @@ MAX_EXTRACTION_DEPTH = 1  # Maximum nesting level for archives
 MAX_FILE_SIZE_MB = 10  # Maximum size for individual extracted file
 
 SUPPORTED_ARCHIVE_EXTENSIONS = {".zip", ".tar", ".tar.gz", ".tgz"}
-SUPPORTED_DOCUMENT_EXTENSIONS = {".pdf", ".txt", ".docx"}
+SUPPORTED_DOCUMENT_EXTENSIONS = {".pdf", ".txt"}
 
 
 class ArchiveExtractionError(Exception):
@@ -46,10 +46,12 @@ def is_archive_file(filename: str) -> bool:
     Returns:
         True if file has supported archive extension
     """
-    file_path = Path(filename)
-    # Check for .tar.gz specifically
-    if filename.lower().endswith(".tar.gz"):
+    filename_lower = filename.lower()
+    # Check for compound extensions first
+    if filename_lower.endswith(".tar.gz"):
         return True
+    # Check simple extensions
+    file_path = Path(filename)
     return file_path.suffix.lower() in SUPPORTED_ARCHIVE_EXTENSIONS
 
 

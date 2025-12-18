@@ -98,7 +98,7 @@ except Exception as e:
 # In-memory conversation storage (for demo - use Redis/DB for production)
 conversations: dict[str, list[dict]] = {}
 
-ALLOWED_EXTENSIONS = {"pdf", "txt", "zip", "tar", "gz", "tgz"}
+ALLOWED_EXTENSIONS = {"pdf", "txt", "zip", "tar", "tgz"}  # Note: .tar.gz handled specially
 
 
 def allowed_file(filename: str) -> bool:
