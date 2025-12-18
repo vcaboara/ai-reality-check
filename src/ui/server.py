@@ -530,7 +530,10 @@ New question: {message}
 
 Provide a helpful, conversational response that builds on the previous discussion. Reference earlier points when relevant."""
 
-        response_text = provider.analyze_text(prompt, system_prompt=system_context)
+        # Combine system context with user prompt for Ollama
+        full_prompt = f"{system_context}\n\n{prompt}"
+        
+        response_text = provider.analyze_text(full_prompt)
 
         # Add assistant response to history
         conversation.append(
