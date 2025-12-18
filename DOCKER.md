@@ -29,16 +29,33 @@ Edit `.env` to configure:
 
 ## Recommended Models
 
-Fast (2-4GB):
-- `llama3.2:3b` - Recommended default, fast, good quality
-- `phi3:mini` - Very fast, 2GB
+**For Technical/Engineering Analysis (Recommended):**
 
-Balanced (8-16GB):
-- `llama3.1:8b` - Good balance
-- `qwen2.5-coder:7b` - Better for technical analysis
+| Model | RAM Required | Quality | Speed | Best For |
+|-------|-------------|---------|-------|----------|
+| `qwen2.5-coder:7b` | **8GB** | ⭐⭐⭐⭐ | Fast | **Best balanced choice** - Technical specs, engineering feasibility |
+| `qwen2.5-coder:14b` | 16GB | ⭐⭐⭐⭐⭐ | Medium | Better reasoning, complex systems |
+| `qwen2.5-coder:32b` | 32GB+ | ⭐⭐⭐⭐⭐ | Slow | Highest quality, detailed analysis |
 
-High Quality (32GB+):
-- `qwen2.5-coder:32b` - Best quality, slower
+**General Purpose (Faster but less technical):**
+
+| Model | RAM Required | Quality | Speed | Best For |
+|-------|-------------|---------|-------|----------|
+| `llama3.2:3b` | 4GB | ⭐⭐⭐ | Very Fast | General knowledge, simple questions |
+| `llama3.1:8b` | 8GB | ⭐⭐⭐⭐ | Fast | Balanced general-purpose |
+| `phi3:mini` | 2GB | ⭐⭐ | Fastest | Limited, very resource-constrained |
+
+**Why qwen2.5-coder:** Specifically trained on technical/code content, better at:
+- Understanding engineering specifications
+- Analyzing technical feasibility  
+- Identifying material/process constraints
+- Technical documentation interpretation
+
+**Hardware Requirements:**
+- **CPU**: Modern multi-core (4+ cores recommended)
+- **RAM**: See model requirements above (system RAM, not VRAM)
+- **GPU**: Optional but significantly faster (NVIDIA with CUDA)
+- **Disk**: 10-50GB depending on models
 
 ## Commands
 

@@ -230,6 +230,11 @@
             <button class="new-session-btn" onclick="startNewSession()">New Session</button>
         </div>
 
+        <div id="analysisContext" style="display: none; margin: 0 20px; padding: 15px; background: #e3f2fd; border-radius: 5px; border-left: 4px solid #2196f3;">
+            <strong>📊 Current Analysis Loaded</strong>
+            <p style="margin: 5px 0 0 0; font-size: 0.9em;">The chat is aware of your recent analysis. You can ask questions about it.</p>
+        </div>
+
         <div class="chat-container">
             <div class="messages" id="messages">
                 <div class="message system">
@@ -258,6 +263,25 @@
     <script>
         let sessionId = null;
         let messageCount = 0;
+        let currentAnalysis = null;
+
+        // Load current analysis from sessionStorage if available
+        window.addEventListener('DOMContentLoaded', () => {
+            const storedAnalysis = sessionStorage.getItem('current_analysis');
+            if (storedAnalysis) {
+                try {
+                    currentAnalysis = JSON.parse(storedAnalysis);
+                    const timestamp = sessionStorage.getItem('current_analysis_timestamp');
+                    document.getElementById('analysisContext').style.display = 'block';
+                    
+                    // Show welcome message with context
+                    const welcomeMsg = document.querySelector('.message.system .message-content');
+                    welcomeMsg.innerHTML = `👋 Welcome! I have your recent analysis loaded (from ${new Date(timestamp).toLocaleTimeString()}).<br><br>You can ask me questions about the analysis, request clarifications, or discuss improvements.`;
+                } catch (e) {
+                    console.error('Failed to load analysis:', e);
+                }
+            }
+        });
 
         function generateSessionId() {
             return 'session_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
@@ -340,7 +364,8 @@
                     body: JSON.stringify({
                         message: message,
                         session_id: sessionId,
-                        message_count: messageCount
+                        message_count: messageCount,
+                        analysis_context: currentAnalysis  // Send analysis context if available
                     })
                 });
 

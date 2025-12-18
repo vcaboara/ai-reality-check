@@ -288,6 +288,9 @@
                 <a href="/chat">💬 Interactive Chat</a>
                 <a href="/results">📊 View Results</a>
             </div>
+            <div style="margin-top: 10px; font-size: 0.9em; opacity: 0.8;">
+                🤖 {{ provider_type }}: {{ current_model }}{% if vram_required != 'Unknown' %} ({{ vram_required }} RAM){% endif %}
+            </div>
         </header>
 
         <div class="content">
@@ -302,6 +305,12 @@
                     <input type="text" id="title" name="title" placeholder="e.g., Biomass Pyrolysis System">
                 </div>
 
+                <div class="form-group">
+                    <label for="context">Additional Context (Optional)</label>
+                    <textarea id="context" name="context" style="min-height: 80px;"
+                        placeholder="Provide background information, constraints, or specific questions...&#10;&#10;Examples:&#10;- Budget: $500K&#10;- Timeline: 18 months&#10;- Location: California&#10;- Specific concerns about material compatibility"></textarea>
+                </div>
+
                 <div class="tab-content active" id="text-content">
                     <div class="form-group">
                         <label for="text">Technical Description</label>
@@ -312,11 +321,11 @@
 
                 <div class="tab-content" id="file-content">
                     <div class="form-group">
-                        <label>Upload Document (PDF or TXT)</label>
+                        <label>Upload Document(s) (PDF or TXT) - Multiple files supported</label>
                         <div class="file-upload" id="fileUpload">
-                            <p>📁 Drop file here or click to browse</p>
-                            <p style="font-size: 0.9em; color: #999; margin-top: 10px;">Max 16MB</p>
-                            <input type="file" id="file" name="file" accept=".pdf,.txt">
+                            <p>📁 Drop file(s) here or click to browse</p>
+                            <p style="font-size: 0.9em; color: #999; margin-top: 10px;">Max 16MB per file. Select multiple files to analyze together.</p>
+                            <input type="file" id="file" name="file" accept=".pdf,.txt" multiple>
                         </div>
                         <div id="fileName" style="margin-top: 10px; color: #667eea;"></div>
                     </div>
@@ -340,6 +349,36 @@
     </div>
 
     <script>
+        // Config defaults from server
+        const configDefaults = {
+            title: "{{ default_title }}",
+            context: "{{ default_context }}"
+        };
+
+        // Load saved values from localStorage, fallback to config defaults
+        window.addEventListener('DOMContentLoaded', () => {
+            const title = localStorage.getItem('project_title') || configDefaults.title;
+            const context = localStorage.getItem('project_context') || configDefaults.context;
+            const text = localStorage.getItem('technical_description') || '';
+            
+            if (title) document.getElementById('title').value = title;
+            if (context) document.getElementById('context').value = context;
+            if (text) document.getElementById('text').value = text;
+        });
+
+        // Save values to localStorage as user types
+        document.getElementById('title').addEventListener('input', (e) => {
+            localStorage.setItem('project_title', e.target.value);
+        });
+
+        document.getElementById('context').addEventListener('input', (e) => {
+            localStorage.setItem('project_context', e.target.value);
+        });
+
+        document.getElementById('text').addEventListener('input', (e) => {
+            localStorage.setItem('technical_description', e.target.value);
+        });
+
         // Tab switching
         document.querySelectorAll('.tab').forEach(tab => {
             tab.addEventListener('click', () => {
@@ -382,7 +421,8 @@
 
         function updateFileName() {
             if (fileInput.files.length > 0) {
-                fileName.textContent = `Selected: ${fileInput.files[0].name}`;
+                const fileNames = Array.from(fileInput.files).map(f => f.name).join(', ');
+                fileName.textContent = `Selected (${fileInput.files.length}): ${fileNames}`;
             } else {
                 fileName.textContent = '';
             }
@@ -418,6 +458,10 @@
                     throw new Error(data.error || 'Analysis failed');
                 }
 
+                // Store result in sessionStorage for chat access
+                sessionStorage.setItem('current_analysis', JSON.stringify(data.result));
+                sessionStorage.setItem('current_analysis_timestamp', new Date().toISOString());
+
                 displayResults(data.result);
             } catch (err) {
                 error.textContent = `Error: ${err.message}`;
@@ -446,6 +490,9 @@
             html += '<div class="analysis-section">';
             html += '<h3>📋 Feasibility Analysis</h3>';
             html += '<pre>' + result.analysis + '</pre>';
+            html += '<div style="margin-top: 15px;">';
+            html += '<a href="/chat" style="display: inline-block; padding: 8px 16px; background: #667eea; color: white; text-decoration: none; border-radius: 5px;">💬 Discuss this analysis in Chat</a>';
+            html += '</div>';
             html += '</div>';
 
             // Metadata
