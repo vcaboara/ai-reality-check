@@ -9,8 +9,8 @@ from datetime import datetime
 from pathlib import Path
 
 from asmf.llm import ModelSelector, TaskType
-from asmf.parsers import PDFParser
 from flask import Flask, jsonify, render_template, request
+from pypdf import PdfReader
 from werkzeug.utils import secure_filename
 
 from src.analyzers.feasibility_analyzer import FeasibilityAnalyzer
@@ -40,6 +40,10 @@ app.config["RESULTS_FOLDER"] = Path(
 # Create directories
 app.config["UPLOAD_FOLDER"].mkdir(parents=True, exist_ok=True)
 app.config["RESULTS_FOLDER"].mkdir(parents=True, exist_ok=True)
+
+# Cached uploads directory for session persistence
+CACHED_UPLOADS_DIR = app.config["UPLOAD_FOLDER"] / "cached"
+CACHED_UPLOADS_DIR.mkdir(exist_ok=True)
 
 # Metadata file for fast result listings
 METADATA_FILE = app.config["RESULTS_FOLDER"] / "_metadata.json"
@@ -135,15 +139,62 @@ def extract_text_from_file(filepath: Path) -> str:
     filename = filepath.name.lower()
 
     if filename.endswith(".pdf"):
-        # PDFParser requires path at init, unavoidable per-file instantiation
-        parser = PDFParser(str(filepath))
-        return parser.extract_text()
+        # Extract text from PDF using pypdf
+        reader = PdfReader(str(filepath))
+        text = ""
+        for page in reader.pages:
+            text += page.extract_text() + "\n"
+        return text.strip()
     elif filename.endswith(".txt"):
         # Read text files directly
         with open(filepath, encoding="utf-8") as f:
             return f.read()
     else:
         raise ValueError(f"Unsupported file type: {filename}")
+
+
+def extract_text_with_header(filepath: Path, include_header: bool = True) -> str:
+    """Extract text from file with optional header.
+    
+    Args:
+        filepath: Path to file
+        include_header: Whether to include filename header
+        
+    Returns:
+        Extracted text, optionally with header
+    """
+    text = extract_text_from_file(filepath)
+    if include_header:
+        return f"\n--- File: {filepath.name} ---\n{text}"
+    return text
+
+
+def process_multiple_files(filepaths: list[Path]) -> str:
+    """Process multiple files and combine their text.
+    
+    Args:
+        filepaths: List of file paths to process
+        
+    Returns:
+        Combined text from all files with headers
+        
+    Raises:
+        ValueError: If no text could be extracted
+    """
+    combined_text = []
+    for file_path in filepaths:
+        try:
+            text = extract_text_with_header(file_path)
+            combined_text.append(text)
+            logger.info(f"Extracted text from {file_path.name}")
+        except Exception as e:
+            logger.warning(f"Failed to extract text from {file_path.name}: {e}")
+            continue
+    
+    if not combined_text:
+        raise ValueError("Could not extract text from any files")
+    
+    return "\n".join(combined_text)
 
 
 def process_archive_files(archive_path: Path) -> str:
@@ -167,24 +218,8 @@ def process_archive_files(archive_path: Path) -> str:
         if not supported_files:
             raise ValueError("No supported files (PDF, TXT) found in archive")
 
-        # Extract text from each file
-        combined_text = []
-        for file_path in supported_files:
-            try:
-                text = extract_text_from_file(file_path)
-                combined_text.append(
-                    f"\n--- File: {file_path.name} ---\n{text}")
-                logger.info(f"Extracted text from {file_path.name}")
-            except Exception as e:
-                logger.warning(
-                    f"Failed to extract text from {file_path.name}: {e}")
-                continue
-
-        if not combined_text:
-            raise ValueError(
-                "Could not extract text from any files in archive")
-
-        return "\n".join(combined_text)
+        # Use generalized multi-file processing
+        return process_multiple_files(supported_files)
 
     finally:
         # Clean up temporary directory
@@ -244,9 +279,58 @@ def save_metadata(metadata: list[dict]) -> None:
 def add_result_metadata(filename: str, title: str, timestamp: str) -> None:
     """Add new result to metadata cache."""
     metadata = load_metadata()
-    metadata.append(
-        {"filename": filename, "title": title, "timestamp": timestamp})
+    metadata.append({"filename": filename, "title": title, "timestamp": timestamp})
     save_metadata(metadata)
+
+
+def get_session_upload_dir() -> Path:
+    """Get or create session-specific upload directory."""
+    from flask import session
+    
+    # Create session ID if not exists
+    if "upload_session_id" not in session:
+        session["upload_session_id"] = os.urandom(16).hex()
+    
+    session_dir = CACHED_UPLOADS_DIR / session["upload_session_id"]
+    session_dir.mkdir(exist_ok=True)
+    return session_dir
+
+
+def cache_uploaded_file(file, original_filename: str) -> Path:
+    """Cache uploaded file in session directory."""
+    session_dir = get_session_upload_dir()
+    filename = secure_filename(original_filename)
+    filepath = session_dir / filename
+    file.save(filepath)
+    logger.info(f"Cached file: {filepath}")
+    return filepath
+
+
+def get_cached_files() -> list[Path]:
+    """Get list of cached files for current session."""
+    from flask import session
+    
+    if "upload_session_id" not in session:
+        return []
+    
+    session_dir = CACHED_UPLOADS_DIR / session["upload_session_id"]
+    if not session_dir.exists():
+        return []
+    
+    return list(session_dir.glob("*"))
+
+
+def clear_cached_files() -> None:
+    """Clear cached files for current session."""
+    from flask import session
+    
+    if "upload_session_id" not in session:
+        return
+    
+    session_dir = CACHED_UPLOADS_DIR / session["upload_session_id"]
+    if session_dir.exists():
+        shutil.rmtree(session_dir)
+        logger.info(f"Cleared session cache: {session_dir}")
 
 
 @app.route("/")
@@ -325,10 +409,9 @@ def analyze():
             if not files or all(f.filename == "" for f in files):
                 return jsonify({"error": "No file selected"}), 400
 
-            # Process all files and combine text
-            combined_text = []
-            temp_archives = []  # Track archives for cleanup
-
+            # Collect file paths and track archives for cleanup
+            file_paths = []
+            
             for file in files:
                 if file.filename == "":
                     continue
@@ -344,52 +427,35 @@ def analyze():
                         400,
                     )
 
-                # Save file
-                filename = secure_filename(file.filename)
-                timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-                unique_filename = f"{timestamp}_{filename}"
-                filepath = app.config["UPLOAD_FOLDER"] / unique_filename
+                # Save file to session cache
+                filepath = cache_uploaded_file(file, file.filename)
+                logger.info(f"Processing cached file: {filepath}")
+                file_paths.append(filepath)
 
-                file.save(filepath)
-                logger.info(f"Saved upload: {filepath}")
-
-                try:
-                    # Check if it's an archive file
-                    if is_archive_file(filename):
-                        logger.info(f"Processing archive: {filename}")
-                        # Extract and process archive
-                        archive_text = process_archive_files(filepath)
-                        combined_text.append(archive_text)
-                        # Mark for later deletion
-                        temp_archives.append(filepath)
-                    elif filename.endswith(".pdf"):
-                        # For PDFs, use the analyzer's PDF parsing
-                        if len(files) == 1:
-                            # Single PDF - use direct analysis
-                            result = analyzer.analyze_pdf(
-                                str(filepath), context=context)
+            # Process files
+            try:
+                # Check for single PDF (use direct analyzer method)
+                if len(file_paths) == 1 and file_paths[0].name.lower().endswith(".pdf"):
+                    result = analyzer.analyze_pdf(str(file_paths[0]), context=context)
+                else:
+                    # Multiple files or mixed types - extract and combine text
+                    combined_text = []
+                    for filepath in file_paths:
+                        if is_archive_file(filepath.name):
+                            # Process archive
+                            logger.info(f"Processing archive: {filepath.name}")
+                            archive_text = process_archive_files(filepath)
+                            combined_text.append(archive_text)
                         else:
-                            # Multiple files - extract text for combining
-                            text = extract_text_from_file(filepath)
-                            combined_text.append(
-                                f"\n--- File: {filename} ---\n{text}")
-                    else:
-                        # Read text file
-                        text = extract_text_from_file(filepath)
-                        combined_text.append(
-                            f"\n--- File: {filename} ---\n{text}")
+                            # Regular file
+                            text = extract_text_with_header(filepath)
+                            combined_text.append(text)
+                    
+                    result = analyzer.analyze("\n".join(combined_text), context=context)
 
-                except (ArchiveExtractionError, SecurityValidationError, ValueError) as e:
-                    logger.error(f"Error processing {filename}: {e}")
-                    return jsonify({"error": str(e)}), 400
-
-            # If multiple files or archives processed, analyze combined text
-            if len(combined_text) > 0 and not result:
-                result = analyzer.analyze(
-                    "\n".join(combined_text), context=context)
-            elif not result and len(files) == 1:
-                # Single file case should have been handled above
-                return jsonify({"error": "Failed to process file"}), 500
+            except (ArchiveExtractionError, SecurityValidationError, ValueError) as e:
+                logger.error(f"Error processing files: {e}")
+                return jsonify({"error": str(e)}), 400
 
         else:
             return jsonify({"error": "No text or file provided"}), 400
@@ -467,6 +533,37 @@ def health():
             "provider": analyzer.expert.__class__.__name__,
         }
     )
+
+
+@app.route("/api/cached-files")
+def get_cached_files_api():
+    """Get list of cached files for current session."""
+    try:
+        cached_files = get_cached_files()
+        return jsonify({
+            "files": [
+                {
+                    "name": f.name,
+                    "size": f.stat().st_size,
+                    "modified": f.stat().st_mtime
+                }
+                for f in cached_files
+            ]
+        })
+    except Exception as e:
+        logger.error(f"Error listing cached files: {e}")
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route("/api/clear-cache", methods=["POST"])
+def clear_cache_api():
+    """Clear cached files for current session."""
+    try:
+        clear_cached_files()
+        return jsonify({"success": True, "message": "Cache cleared"})
+    except Exception as e:
+        logger.error(f"Error clearing cache: {e}")
+        return jsonify({"error": str(e)}), 500
 
 
 @app.route("/chat")
