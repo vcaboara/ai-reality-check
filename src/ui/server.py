@@ -126,9 +126,9 @@ def extract_text_from_file(filepath: Path) -> str:
     filename = filepath.name.lower()
 
     if filename.endswith(".pdf"):
-        # Use ASMF's PDFParser for PDF files
-        parser = PDFParser()
-        return parser.extract_text(str(filepath))
+        # PDFParser requires path at init, unavoidable per-file instantiation
+        parser = PDFParser(str(filepath))
+        return parser.extract_text()
     elif filename.endswith(".txt"):
         # Read text files directly
         with open(filepath, encoding="utf-8") as f:
